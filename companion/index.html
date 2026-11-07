@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Cardwisp</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,"PingFang SC",sans-serif;color:#f4eedb;background:#0a1c1b}
+    *{box-sizing:border-box}body{margin:0;min-width:320px;height:100vh;overflow:hidden}
+    .app{height:100vh;display:flex;flex-direction:column;background:linear-gradient(145deg,#18332e,#0d2223 58%,#102728)}
+    header{border-bottom:3px solid #d7ab55;padding:15px 18px 13px;background:#142b2b;box-shadow:0 4px 18px #06141366}
+    .top{display:flex;align-items:center;gap:12px}.mark{width:34px;height:34px;flex:none}.mark svg{width:34px;height:34px;display:block;image-rendering:pixelated}
+    h1{font-size:20px;margin:0;line-height:1.2;letter-spacing:.03em}.sub{color:#aebeb6;font-size:12px;margin-top:2px}
+    .top button{margin-left:auto}.control{display:flex;align-items:center;gap:10px;margin-top:13px}.control select{flex:1;min-width:0}
+    select,button,textarea{font:inherit}select{background:#233e3c;color:#f4eedb;border:1px solid #55726b;border-radius:8px;padding:9px 10px;outline:none}
+    button{background:#2c504a;border:1px solid #648179;color:#f4eedb;border-radius:8px;cursor:pointer;padding:8px 11px}button:hover{background:#39665d}button:disabled{opacity:.5;cursor:not-allowed}
+    button.icon{font-size:16px;line-height:1;min-width:36px;height:36px}
+    .effort{display:flex;align-items:center;gap:10px;margin-top:12px;color:#e4b862;font-size:13px}.effort strong{min-width:34px;font-size:14px}
+    input[type=range]{flex:1;accent-color:#e4b862;cursor:pointer}
+    .state{padding:12px 18px;border-bottom:1px solid #466359;background:#18342f}.state small{color:#abbdb2;display:block;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .status{font-size:12px;color:#a8d4b8}.status.warn{color:#f2ad83}
+    main{flex:1;min-height:0;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:13px}
+    .message{max-width:92%;border:1px solid #49665e;background:#1d3936;border-radius:10px;padding:11px 13px;line-height:1.52;white-space:pre-wrap;overflow-wrap:anywhere}
+    .message.user{align-self:flex-end;background:#3d3d31;border-color:#82724a}.message.error{border-color:#a55850;color:#f4b7ae}
+    .who{font-size:11px;letter-spacing:.04em;color:#ecc16b;margin-bottom:6px;font-weight:700}
+    .welcome{color:#afc0b6;text-align:center;margin:auto 0;line-height:1.7}
+    footer{padding:12px 15px 15px;border-top:1px solid #567167;background:#142d2b}
+    .composer{display:flex;align-items:end;gap:8px}.composer textarea{flex:1;resize:none;min-height:45px;max-height:130px;background:#09201f;border:1px solid #607e72;color:#f4eedb;border-radius:9px;padding:11px;outline:none}
+    .composer textarea.suggested:not(:focus){font-style:italic;color:#c5cdbb}
+    .composer textarea:focus{border-color:#d7ab55}.send{width:46px;height:45px;background:#d34940;border-color:#ef776a;font-size:24px;font-weight:800;padding:0}.send:hover{background:#e05a50}
+    .footnote{margin-top:8px;color:#879e93;font-size:11px;text-align:center}
+    .message.thinking{color:#b9c9bf;border-style:dashed}.message.thinking .dots span{display:inline-block;animation:blink 1.2s infinite}.message.thinking .dots span:nth-child(2){animation-delay:.2s}.message.thinking .dots span:nth-child(3){animation-delay:.4s}
+    @keyframes blink{0%,80%,100%{opacity:.15}40%{opacity:1}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="top"><div class="mark" aria-hidden="true"><!-- 像素鬼火：17×17 格带金色外框，每格 2 点，Retina 下正好 4 个设备像素 --><svg viewBox="0 0 17 17" shape-rendering="crispEdges"><rect x="2" y="0" width="13" height="1" fill="#e8bb60"/><rect x="1" y="1" width="1" height="1" fill="#e8bb60"/><rect x="2" y="1" width="13" height="1" fill="#17322e"/><rect x="15" y="1" width="1" height="1" fill="#e8bb60"/><rect x="0" y="2" width="1" height="1" fill="#e8bb60"/><rect x="1" y="2" width="15" height="1" fill="#17322e"/><rect x="16" y="2" width="1" height="1" fill="#e8bb60"/><rect x="0" y="3" width="1" height="1" fill="#e8bb60"/><rect x="1" y="3" width="7" height="1" fill="#17322e"/><rect x="8" y="3" width="1" height="1" fill="#2fb5a0"/><rect x="9" y="3" width="7" height="1" fill="#17322e"/><rect x="16" y="3" width="1" height="1" fill="#e8bb60"/><rect x="0" y="4" width="1" height="1" fill="#e8bb60"/><rect x="1" y="4" width="6" height="1" fill="#17322e"/><rect x="7" y="4" width="2" height="1" fill="#2fb5a0"/><rect x="9" y="4" width="7" height="1" fill="#17322e"/><rect x="16" y="4" width="1" height="1" fill="#e8bb60"/><rect x="0" y="5" width="1" height="1" fill="#e8bb60"/><rect x="1" y="5" width="6" height="1" fill="#17322e"/><rect x="7" y="5" width="3" height="1" fill="#2fb5a0"/><rect x="10" y="5" width="6" height="1" fill="#17322e"/><rect x="16" y="5" width="1" height="1" fill="#e8bb60"/><rect x="0" y="6" width="1" height="1" fill="#e8bb60"/><rect x="1" y="6" width="5" height="1" fill="#17322e"/><rect x="6" y="6" width="2" height="1" fill="#2fb5a0"/><rect x="8" y="6" width="1" height="1" fill="#8ff0d8"/><rect x="9" y="6" width="2" height="1" fill="#2fb5a0"/><rect x="11" y="6" width="5" height="1" fill="#17322e"/><rect x="16" y="6" width="1" height="1" fill="#e8bb60"/><rect x="0" y="7" width="1" height="1" fill="#e8bb60"/><rect x="1" y="7" width="4" height="1" fill="#17322e"/><rect x="5" y="7" width="2" height="1" fill="#2fb5a0"/><rect x="7" y="7" width="2" height="1" fill="#8ff0d8"/><rect x="9" y="7" width="3" height="1" fill="#2fb5a0"/><rect x="12" y="7" width="4" height="1" fill="#17322e"/><rect x="16" y="7" width="1" height="1" fill="#e8bb60"/><rect x="0" y="8" width="1" height="1" fill="#e8bb60"/><rect x="1" y="8" width="3" height="1" fill="#17322e"/><rect x="4" y="8" width="3" height="1" fill="#2fb5a0"/><rect x="7" y="8" width="1" height="1" fill="#8ff0d8"/><rect x="8" y="8" width="1" height="1" fill="#e8bb60"/><rect x="9" y="8" width="1" height="1" fill="#8ff0d8"/><rect x="10" y="8" width="3" height="1" fill="#2fb5a0"/><rect x="13" y="8" width="3" height="1" fill="#17322e"/><rect x="16" y="8" width="1" height="1" fill="#e8bb60"/><rect x="0" y="9" width="1" height="1" fill="#e8bb60"/><rect x="1" y="9" width="3" height="1" fill="#17322e"/><rect x="4" y="9" width="2" height="1" fill="#2fb5a0"/><rect x="6" y="9" width="1" height="1" fill="#8ff0d8"/><rect x="7" y="9" width="3" height="1" fill="#e8bb60"/><rect x="10" y="9" width="1" height="1" fill="#8ff0d8"/><rect x="11" y="9" width="2" height="1" fill="#2fb5a0"/><rect x="13" y="9" width="3" height="1" fill="#17322e"/><rect x="16" y="9" width="1" height="1" fill="#e8bb60"/><rect x="0" y="10" width="1" height="1" fill="#e8bb60"/><rect x="1" y="10" width="3" height="1" fill="#17322e"/><rect x="4" y="10" width="2" height="1" fill="#2fb5a0"/><rect x="6" y="10" width="5" height="1" fill="#e8bb60"/><rect x="11" y="10" width="2" height="1" fill="#2fb5a0"/><rect x="13" y="10" width="3" height="1" fill="#17322e"/><rect x="16" y="10" width="1" height="1" fill="#e8bb60"/><rect x="0" y="11" width="1" height="1" fill="#e8bb60"/><rect x="1" y="11" width="3" height="1" fill="#17322e"/><rect x="4" y="11" width="2" height="1" fill="#2fb5a0"/><rect x="6" y="11" width="1" height="1" fill="#e8bb60"/><rect x="7" y="11" width="1" height="1" fill="#0c1f20"/><rect x="8" y="11" width="1" height="1" fill="#e8bb60"/><rect x="9" y="11" width="1" height="1" fill="#0c1f20"/><rect x="10" y="11" width="1" height="1" fill="#e8bb60"/><rect x="11" y="11" width="2" height="1" fill="#2fb5a0"/><rect x="13" y="11" width="3" height="1" fill="#17322e"/><rect x="16" y="11" width="1" height="1" fill="#e8bb60"/><rect x="0" y="12" width="1" height="1" fill="#e8bb60"/><rect x="1" y="12" width="3" height="1" fill="#17322e"/><rect x="4" y="12" width="2" height="1" fill="#2fb5a0"/><rect x="6" y="12" width="1" height="1" fill="#e8bb60"/><rect x="7" y="12" width="1" height="1" fill="#0c1f20"/><rect x="8" y="12" width="1" height="1" fill="#e8bb60"/><rect x="9" y="12" width="1" height="1" fill="#0c1f20"/><rect x="10" y="12" width="1" height="1" fill="#e8bb60"/><rect x="11" y="12" width="2" height="1" fill="#2fb5a0"/><rect x="13" y="12" width="3" height="1" fill="#17322e"/><rect x="16" y="12" width="1" height="1" fill="#e8bb60"/><rect x="0" y="13" width="1" height="1" fill="#e8bb60"/><rect x="1" y="13" width="4" height="1" fill="#17322e"/><rect x="5" y="13" width="2" height="1" fill="#2fb5a0"/><rect x="7" y="13" width="3" height="1" fill="#e8bb60"/><rect x="10" y="13" width="2" height="1" fill="#2fb5a0"/><rect x="12" y="13" width="4" height="1" fill="#17322e"/><rect x="16" y="13" width="1" height="1" fill="#e8bb60"/><rect x="0" y="14" width="1" height="1" fill="#e8bb60"/><rect x="1" y="14" width="5" height="1" fill="#17322e"/><rect x="6" y="14" width="5" height="1" fill="#2fb5a0"/><rect x="11" y="14" width="5" height="1" fill="#17322e"/><rect x="16" y="14" width="1" height="1" fill="#e8bb60"/><rect x="1" y="15" width="1" height="1" fill="#e8bb60"/><rect x="2" y="15" width="13" height="1" fill="#17322e"/><rect x="15" y="15" width="1" height="1" fill="#e8bb60"/><rect x="2" y="16" width="13" height="1" fill="#e8bb60"/></svg></div><div><h1 id="title">牌灵</h1><div class="sub">Cardwisp for Balatro</div></div><button id="inside" class="icon" title="返回游戏内" aria-label="返回游戏内">↩</button></div>
+    <div class="control"><select id="model" aria-label="模型"></select></div>
+    <div class="effort"><span id="effortTitle">强度</span><input id="effort" type="range" min="0" max="3" value="2" aria-label="强度"><strong id="effortValue">高</strong></div>
+    <div class="control"><label id="goalTitle" for="playGoal">目标</label><select id="playGoal"></select></div>
+  </header>
+  <div class="state"><div id="status" class="status warn">等待游戏连接…</div><small id="summary"></small><small id="items"></small></div>
+  <main id="messages" aria-live="polite"></main>
+  <footer><div class="composer"><textarea id="question" rows="1" maxlength="2400" placeholder="输入问题…"></textarea><button id="send" class="send" aria-label="发送">↑</button></div><div id="footnote" class="footnote">AI可能有误 注意核实</div></footer>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const zh = {title:'牌灵',inside:'返回游戏内',effort:'强度',goal:'目标',goal_clear:'通关',goal_endless:'无尽冲分',goal_unavailable:'（未开放）',send:'发送',placeholder:'输入问题…',footnote:'AI可能有误 注意核实',waiting:'等待游戏连接…',thinking:'正在思考',waited:'已等待',ready:'已连接游戏',stale:'局面已过期，请回到游戏',welcome:'问我商店选择、小丑顺序或构筑方向。',you:'你',assistant:'牌灵',low:'低',medium:'中',high:'高',xhigh:'极高',max:'最大',ultra:'超高',shop:'商店',pack:'开卡包',play:'出牌',blind_select:'选盲注',run:'牌局',suggest_shop:'这个商店怎么选？',suggest_pack:'这个卡包选哪张？',suggest_play:'这手牌建议怎么出？',suggest_blind_select:'这个盲注值得跳过吗？',suggest_other:'帮我看看当前局面',packChoices:'可选',consumables:'道具',error:'请求失败',insideHint:'已切回游戏内',cli_failed:'模型调用失败，请查看桥接窗口里的原因',cli_unavailable:'未找到模型命令行工具',timeout:'模型响应超时',bad_response:'模型未返回文字',stale_state:'局面已过期',shop_changed:'商店已变化，请重新提问',scene_changed:'局面已变化，请重新提问',scene_loading:'卡包候选牌尚未同步，请稍后重试',stale_run:'牌局已切换',goal_changed:'目标已切换，请重新提问',busy:'牌灵仍在回答上一条问题',bad_settings:'模型、强度或目标不可用',settings_unavailable:'无法保存设置'};
+  const en = {title:'Cardwisp',inside:'Return to game',effort:'Effort',goal:'Goal',goal_clear:'Clear Ante 8',goal_endless:'Endless score',goal_unavailable:' (soon)',send:'Send',placeholder:'Ask a question…',footnote:'AI may be wrong. Please double-check.',waiting:'Waiting for game…',thinking:'Thinking',waited:'waited',ready:'Game connected',stale:'Game state is stale',welcome:'Ask about shop choices, joker order, or build direction.',you:'You',assistant:'Cardwisp',low:'Low',medium:'Medium',high:'High',xhigh:'Extra high',max:'Max',ultra:'Ultra',shop:'Shop',pack:'Open pack',play:'Play',blind_select:'Blind select',run:'Run',suggest_shop:'What should I buy here?',suggest_pack:'Which card should I take from this pack?',suggest_play:'What should I play from this hand?',suggest_blind_select:'Should I skip this blind?',suggest_other:'Help me review this run',packChoices:'Picks left',consumables:'Consumables',error:'Request failed',insideHint:'Returned to game',cli_failed:'Model call failed. See the bridge window.',cli_unavailable:'Model CLI was not found.',timeout:'Model response timed out.',bad_response:'The model returned no text.',stale_state:'Game state is stale.',shop_changed:'The shop changed. Ask again about the new offers.',scene_changed:'The game state changed. Ask again.',scene_loading:'Pack choices are not synced yet. Please retry shortly.',stale_run:'The run changed.',goal_changed:'The goal changed. Ask again.',busy:'Cardwisp is answering another question.',bad_settings:'Model, effort or goal unavailable.',settings_unavailable:'Could not save settings.'};
+  let dictionary = zh, models = [], goals = [{id:'clear',enabled:true}], session = null, sending = false, lastSignature = '', lastSuggestionContext = '', lastSuggestionRun = '', pendingSince = 0;
+  async function api(path, body) {
+    const response = await fetch(path, body === undefined ? undefined : {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.code || 'network');
+    return data;
+  }
+  function setStatus(text, warn=false) { $('status').textContent=text; $('status').className=warn?'status warn':'status'; }
+  function localize() {
+    dictionary = session?.language === 'zh_CN' ? zh : en;
+    document.documentElement.lang = dictionary === zh ? 'zh-CN' : 'en';
+    $('title').textContent=dictionary.title; $('inside').title=dictionary.inside; $('inside').setAttribute('aria-label',dictionary.inside);
+    $('effortTitle').textContent=dictionary.effort; $('effort').setAttribute('aria-label',dictionary.effort);
+    $('goalTitle').textContent=dictionary.goal;
+    for (const option of $('playGoal').options) option.textContent=dictionary['goal_'+option.value]+(option.disabled?dictionary.goal_unavailable:'');
+    $('send').setAttribute('aria-label',dictionary.send); $('question').placeholder=dictionary.placeholder;
+    $('footnote').textContent=dictionary.footnote;
+  }
+  function renderSettings() {
+    const selected = session?.settings?.model || models[0]?.id || 'claude-opus-5-5';
+    if ($('model').options.length !== models.length) {
+      $('model').replaceChildren(...models.map(item => {const option=document.createElement('option');option.value=item.id;option.textContent=item.name || item.id;return option;}));
+    }
+    if ($('playGoal').options.length !== goals.length) {
+      $('playGoal').replaceChildren(...goals.map(item => {const option=document.createElement('option');option.value=item.id;option.disabled=item.enabled===false;option.textContent=dictionary['goal_'+item.id]+(item.enabled===false?dictionary.goal_unavailable:'');return option;}));
+    }
+    $('model').value=selected;
+    const levels = models.find(item => item.id === selected)?.efforts || ['high'];
+    $('effort').max=String(levels.length-1);
+    $('effort').value=String(Math.max(0,levels.indexOf(session?.settings?.effort || 'high')));
+    $('effortValue').textContent=dictionary[levels[Number($('effort').value)]] || levels[Number($('effort').value)];
+    $('playGoal').value=session?.settings?.play_goal || 'clear';
+  }
+  function renderMessages() {
+    const entries=session?.messages || [];
+    const pending=Boolean(session?.pending);
+    if (pending && !pendingSince) pendingSince=Date.now(); if (!pending) pendingSince=0;
+    const waited=pending?Math.floor((Date.now()-pendingSince)/1000):0;
+    const signature=JSON.stringify([session?.language,entries,pending,waited]);
+    if (signature===lastSignature) return;
+    lastSignature=signature;
+    const box=$('messages'); const nearBottom=box.scrollHeight-box.scrollTop-box.clientHeight<80;
+    box.replaceChildren();
+    if (!entries.length && !pending) {const p=document.createElement('p');p.className='welcome';p.textContent=dictionary.welcome;box.append(p);return;}
+    for (const item of entries) {
+      const card=document.createElement('div');card.className='message '+(item.role==='user'?'user':'assistant')+(item.source==='error'?' error':'');
+      const who=document.createElement('div');who.className='who';who.textContent=item.role==='user'?dictionary.you:dictionary.assistant;
+      const text=document.createElement('div');text.textContent=item.source==='error'?(dictionary[item.text] || dictionary.error+': '+item.text):item.text;
+      card.append(who,text);box.append(card);
+    }
+    if (pending) {
+      const card=document.createElement('div');card.className='message assistant thinking';
+      const who=document.createElement('div');who.className='who';who.textContent=dictionary.assistant;
+      const text=document.createElement('div');text.append(document.createTextNode(dictionary.thinking));
+      const dots=document.createElement('span');dots.className='dots';for (const ch of '...') {const s=document.createElement('span');s.textContent=ch;dots.append(s);} text.append(dots);
+      text.append(document.createTextNode('  '+dictionary.waited+' '+waited+'s'));
+      card.append(who,text);box.append(card);
+    }
+    if (nearBottom) box.scrollTop=box.scrollHeight;
+  }
+  function suggestQuestion() {
+    const snap=session?.snapshot;if (!snap) return;
+    const phase=snap.phase || 'other';
+    const context=[session.run_id,session.scene_id,phase,session.language,session.prompt_used].join(':');
+    if (context===lastSuggestionContext) return;
+    const input=$('question');const newRun=lastSuggestionRun!==session.run_id;
+    if (session.prompt_used) {
+      if (input.classList.contains('suggested')) {input.value='';input.classList.remove('suggested');}
+    } else if (newRun || input.classList.contains('suggested') || !input.value.trim()) {
+      input.value=dictionary['suggest_'+phase] || dictionary.suggest_other;
+      input.classList.add('suggested');
+    }
+    lastSuggestionContext=context;lastSuggestionRun=session.run_id;
+  }
+  function render() {
+    localize();renderSettings();renderMessages();
+    const snap=session?.snapshot;
+    const valid=Boolean(session?.connected);
+    const text=snap ? `${dictionary[snap.phase] || dictionary.run} · ${dictionary===zh?'底注':'Ante'} ${snap.ante ?? 0} · $${snap.money ?? 0} · ${dictionary===zh?'小丑':'Jokers'} ${snap.jokers ?? 0}/${snap.slots ?? 0}` : '';
+    $('summary').textContent=text;
+    const details=[];
+    if (snap?.pack) details.push(`${dictionary.packChoices} ${snap.pack.choices_left ?? 0}: ${(snap.pack.options || []).map(card=>card.hidden?'?':card.name).join(' · ')}`);
+    if (snap?.consumables?.length) details.push(`${dictionary.consumables}: ${snap.consumables.map(card=>card.hidden?'?':card.name).join(' · ')}`);
+    $('items').textContent=details.join(' | ');$('items').title=details.join(' | ');
+    suggestQuestion();
+    setStatus(!snap?dictionary.waiting:!valid?dictionary.stale:session.pending?dictionary.thinking:dictionary.ready,!valid);
+    $('send').disabled=!valid || Boolean(session.pending) || sending;
+  }
+  async function refresh() {try {session=await api('/v1/session');render();} catch {setStatus(dictionary.waiting,true);$('send').disabled=true;}}
+  async function changeSettings(changes) {try {const value=await api('/v1/session/settings',changes);session.settings=value.settings;render();return true;} catch(error) {setStatus(dictionary[error.message] || dictionary.error+': '+error.message,true);return false;}}
+  $('model').addEventListener('change',() => {const model=$('model').value;const levels=models.find(item=>item.id===model)?.efforts || ['high'];changeSettings({model,effort:levels.includes(session?.settings?.effort)?session.settings.effort:levels[0]});});
+  $('effort').addEventListener('change',() => {const levels=models.find(item=>item.id===$('model').value)?.efforts || ['high'];changeSettings({effort:levels[Number($('effort').value)]});});
+  $('effort').addEventListener('input',() => {const levels=models.find(item=>item.id===$('model').value)?.efforts || ['high'];$('effortValue').textContent=dictionary[levels[Number($('effort').value)]];});
+  $('playGoal').addEventListener('change',() => changeSettings({play_goal:$('playGoal').value}));
+  $('inside').addEventListener('click',async() => {
+    if (!await changeSettings({display_mode:'inside'})) return;
+    setStatus(dictionary.insideHint);
+    if (window.webkit?.messageHandlers?.cardwispClose) window.webkit.messageHandlers.cardwispClose.postMessage('inside');
+    else window.close();
+  });
+  $('question').addEventListener('input',() => $('question').classList.remove('suggested'));
+  async function send() {
+    const question=$('question').value.trim();if (!question || sending || !session?.connected || session.pending) return;
+    sending=true;$('question').value='';$('question').classList.remove('suggested');$('send').disabled=true;setStatus(dictionary.thinking);
+    try {await api('/v1/session/message',{question});} catch(error) {if(error.message==='scene_loading') $('question').value=question;setStatus(dictionary[error.message] || dictionary.error+': '+error.message,true);}
+    finally {sending=false;await refresh();}
+  }
+  $('send').addEventListener('click',send);
+  $('question').addEventListener('keydown',event => {if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();send();}});
+  async function start() {try {const caps=await api('/v1/capabilities');models=caps.models;goals=caps.goals || goals;await refresh();} catch {setStatus(dictionary.waiting,true);} setInterval(refresh,1000);setInterval(renderMessages,500);}
+  start();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "id": "balatro_assistant",
+  "name": "Cardwisp for Balatro",
+  "author": ["Cardwisp contributors"],
+  "description": "Read-only AI advice panel for Balatro. 小丑牌灵：游戏内只读 AI 建议面板。",
+  "prefix": "bai",
+  "main_file": "main.lua",
+  "priority": 100,
+  "version": "1.0.0",
+  "dependencies": ["Steamodded (>=1.0.0~BETA-0301a)"]
+}
