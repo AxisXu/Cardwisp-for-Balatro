@@ -39,6 +39,21 @@ Cardwisp is an AI advisor that lives inside Balatro. Open the panel during a run
 
 <sub>In the shop: costs, interest and open Joker slots are worked out before the model answers.</sub>
 
+### Tested results
+
+To check whether the advice actually helps, we let a test harness follow Cardwisp's advice for every decision in a full run, on a separate copy of the game.
+
+| Setup | Result |
+| --- | --- |
+| Red Deck, White Stake, Opus 5.5 (high effort), 10 fixed seeds | **Won 7 of 10 runs** (beat Ante 8). The other three ended at Ante 8, 7 and 6. Average: Ante 8.4. |
+| Verified scores | Every play we could check against the game (22 of 22) scored exactly as Cardwisp listed. |
+| Waiting time | About 12 seconds per answer (median). 90% of answers arrive within 17 seconds. |
+
+- Rules followed in every test: no restarting runs, no rerolling seeds, and no hidden information (face-down cards, pack contents, draw order).
+- Seven of the ten runs used an earlier test build with the same score checker and a fuller game state. The other three used the released version and won all three. The released version also won 5 of the 6 runs it played across all tests.
+- White Stake is the lowest difficulty, and ten runs is a small sample. Higher stakes and other models have not been tested.
+- In normal use Cardwisp never plays for you. The harness was only used for testing.
+
 ### Features
 
 - **In-game chat panel.** Click **Cardwisp** in the top-right corner or press **F8** (Fn + F8 on a Mac keyboard). Drag the left edge to resize it.
@@ -136,6 +151,12 @@ No. It only reads the visible state and writes advice. You make every move yours
 **Which AI models can I use?**
 Claude (Opus 5.5 or Fable 5.1) through Claude Code gets every feature. Any OpenAI-compatible API, including local models, can give basic advice through a direct connection. See [Using other AI models](#using-other-ai-models).
 
+**Is the advice any good?**
+Following Cardwisp's advice for every decision won 7 of 10 runs on White Stake. See [Tested results](#tested-results). It can still be wrong, so treat it as a second opinion.
+
+**How long does an answer take?**
+Usually 10 to 20 seconds, with a median of about 12. Complicated situations occasionally take around 40 seconds.
+
 **Is it free?**
 The mod is free and open source under the MIT License. Questions count toward your own AI account's usage or API bill.
 
@@ -190,6 +211,21 @@ Released under the [MIT License](LICENSE). The license covers Cardwisp's own cod
 ![小丑牌灵在商店里给建议：只买小丑包，买完剩 8 美元，仍有 1 利息](docs/images/shop-zh.jpg)
 
 <sub>商店里：价格、利息和空余小丑格子在模型回答前就已经算好。</sub>
+
+### 实测表现
+
+为了检验建议是不是真的有用，我们在一份单独的游戏副本上让测试程序整局照牌灵的建议走，每个决定都听它的。
+
+| 测试条件 | 结果 |
+| --- | --- |
+| 红色牌组、白色赌注、Opus 5.5（高思考强度）、10 个固定种子 | **10 局通关 7 局**（打过第 8 底注），另外三局止步第 8、7、6 底注，平均打到第 8.4 底注 |
+| 已验证得分 | 能对照游戏实际结果核对的出牌共 22 手，得分与牌灵列出的完全一致 |
+| 等待时间 | 每次回答中位约 12 秒，90% 在 17 秒内 |
+
+- 全程遵守：不重开、不换种子、不读隐藏信息（背面朝下的牌、卡包内容、抽牌顺序）。
+- 10 局里有 7 局用的是更早的测试版本，计分核对相同、局面信息更全；另外 3 局用的是发布版，3 局全部通关。把所有测试算在一起，发布版打过 6 局，通关 5 局。
+- 白色赌注是最低难度，10 局样本也不大；更高赌注和其他模型还没测过。
+- 平时使用时牌灵不会替你操作，测试程序只用于测试。
 
 ### 功能
 
@@ -287,6 +323,12 @@ Released under the [MIT License](LICENSE). The license covers Cardwisp's own cod
 
 **能用哪些 AI 模型？**
 通过 Claude Code 使用 Claude（Opus 5.5 或 Fable 5.1）功能最完整。任何 OpenAI 兼容接口（包括本地模型）都可以直连，给出基础建议。见[接入其他 AI 模型](#接入其他-ai-模型)。
+
+**建议靠谱吗？**
+照牌灵的建议整局打下来，白色赌注 10 局通关 7 局，见[实测表现](#实测表现)。它仍然会出错，请当作参考意见。
+
+**一次回答要等多久？**
+通常 10 到 20 秒，中位约 12 秒。局面复杂时偶尔会到 40 秒左右。
 
 **收费吗？**
 模组本身免费，以 MIT 许可证开源。提问会计入你自己 AI 账号的用量或 API 账单。
