@@ -1,30 +1,65 @@
-# Cardwisp for Balatro
+<p align="center">
+  <img src="docs/images/cardwisp-icon.png" width="136" alt="Cardwisp pixel wisp icon">
+</p>
 
-**English** · [中文](#小丑牌灵cardwisp-for-balatro)
+<h1 align="center">Cardwisp for Balatro · 小丑牌灵</h1>
+
+<p align="center">
+  <b>An AI advisor mod for Balatro: it reads what is on screen and suggests what to buy, pick and play.</b><br>
+  Balatro（小丑牌）AI 顾问模组：读取当前局面，建议买什么、选什么、怎么出牌。
+</p>
+
+<p align="center">
+  <a href="https://github.com/AxisXu/Cardwisp-for-Balatro/releases/latest"><img src="https://img.shields.io/github/v/release/AxisXu/Cardwisp-for-Balatro?label=release&color=e8bb60" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2fb5a0" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/Steamodded-1.0.0%2B-17322e" alt="Steamodded 1.0.0+">
+  <img src="https://img.shields.io/badge/lang-English%20%7C%20%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-8ff0d8" alt="English and Simplified Chinese">
+</p>
+
+<p align="center"><a href="#english"><b>English</b></a> · <a href="#中文说明"><b>中文说明</b></a></p>
+
+---
+
+## English
 
 Cardwisp is an AI advisor that lives inside Balatro. Open the panel during a run, ask a question (or send the suggested one), and get short advice based on what is currently on screen. **It only reads the visible game state and gives text advice. It never plays cards, buys items, or takes any action for you.**
 
-## Features
+![Cardwisp companion window next to Balatro, recommending a Pair of 9s verified at 1,480 points against the 450 needed](docs/images/play-en.jpg)
+
+<sub>Playing a hand: Cardwisp lists the verified score (1,480 vs. 450 needed) and explains why to play before discarding. The advice is in the companion window on the right.</sub>
+
+### How it works
+
+1. **The game shares only what you can see.** The mod reads the visible state (your hand, Jokers, shop, blind, money) and sends it to a small bridge program on your own computer. Nothing leaves your machine yet.
+2. **You ask.** Each scene has a suggested question, such as *What should I buy here?*, or you can type your own.
+3. **The bridge checks the numbers first.** Before asking the model, it works out the facts it can verify: costs, money left after buying, interest tiers, Joker slots, score still needed, and the exact final score of every play it can verify.
+4. **Your AI model answers.** The bridge sends the state, the checked facts and your question to the model, and the advice appears in the in-game panel or the companion window.
+
+![Cardwisp advising in the Balatro shop: buy the Buffoon Pack and Uranus, keep $5 and interest](docs/images/shop-en.jpg)
+
+<sub>In the shop: costs, interest and open Joker slots are worked out before the model answers.</sub>
+
+### Features
 
 - **In-game chat panel.** Click **Cardwisp** in the top-right corner or press **F8** (Fn + F8 on a Mac keyboard). Drag the left edge to resize it.
 - **Scene-aware questions.** The shop, booster packs, playing a hand, and blind selection each get a suggested question. Send it as is or type your own.
-- **Checked numbers instead of guesses.** Before asking the model, Cardwisp works out the facts it can verify. In the shop that is costs, the balance left after buying, interest tiers, Joker slots, and sell-then-buy swaps. When playing a hand it is the score still needed, hands and discards left, and **exact final scores for the hands that can be verified**.
+- **Checked numbers instead of guesses.** In the shop that means costs, the balance left after buying, interest tiers, Joker slots, and sell-then-buy swaps. When playing a hand it means the score still needed, hands and discards left, and **exact final scores for the hands that can be verified**.
 - **Follows the game language.** The interface is available in English and Simplified Chinese; other languages fall back to English. Card names and effects are read in the game's own language.
 - **Optional companion window on macOS.** Advice can be shown in a separate window docked next to the game instead of inside it.
 
-## Requirements
+### Requirements
 
 - **Balatro for PC/Mac (Steam).** Mobile, console and Apple Arcade versions cannot load mods.
 - **[Lovely](https://github.com/ethangreen-dev/lovely-injector)** and **[Steamodded](https://github.com/Steamodded/smods)** 1.0.0~BETA-0301a or newer.
 - **Python 3.9 or newer**, to run the local bridge.
-- **[Claude Code](https://claude.com/claude-code)** installed and signed in. Run `claude` once in a terminal to log in. Cardwisp uses your own Claude account: it works with a Claude subscription or with an `ANTHROPIC_API_KEY`, and each question counts toward that account's usage.
+- **An AI model.** The recommended setup is **[Claude Code](https://claude.com/claude-code)** installed and signed in (run `claude` once in a terminal to log in). It works with a Claude subscription or with an `ANTHROPIC_API_KEY`, and each question counts toward that account's usage. Other models are covered in [Using other AI models](#using-other-ai-models).
 - For the macOS companion window: Xcode Command Line Tools (`swiftc`). It is compiled on first use.
 
 Cardwisp is developed and tested on macOS. The in-game panel and the bridge are plain Lua and Python and should work on Windows too, but Windows has not been tested yet.
 
-## Install
+### Install
 
-1. Download and unzip this folder anywhere.
+1. Download `Cardwisp-<version>.zip` from [Releases](https://github.com/AxisXu/Cardwisp-for-Balatro/releases/latest) and unzip it anywhere.
 2. Install the mod into your Balatro `Mods` folder:
 
    ```sh
@@ -47,28 +82,73 @@ Cardwisp is developed and tested on macOS. The in-game panel and the bridge are 
 
 To uninstall, delete `Mods/balatro-assistant/`.
 
-## Usage
+### Usage
 
 - Open or close the panel with the **Cardwisp** button or **F8**. Press Enter to send and Esc to leave the input box. Chinese and other IME input is supported; finish composing before pressing Enter.
 - The settings icon in the panel picks the model (Opus 5.5 or Fable 5.1), the thinking effort, and whether advice shows inside the game or in the companion window. Settings take effect from the next question.
 - If the game state changes while the model is answering, the answer is discarded and you are asked to try again, so you never get advice for a state that no longer exists.
 - Chat history lives in the bridge's memory and is cleared when a new run starts or the bridge stops.
 
-## Privacy and cost
+### Using other AI models
+
+Cardwisp can reach a model in two ways.
+
+**1. Through the bridge (recommended, all features).** The bridge calls the Claude Code CLI with your own account. You get the checked numbers, verified scores, model and effort settings, and the companion window. The panel currently offers Opus 5.5 and Fable 5.1. The bridge also contains a Codex CLI backend, but it is not offered in the panel yet.
+
+**2. Direct connection to any OpenAI-compatible API (basic advice).** This works with OpenAI, DeepSeek, OpenRouter, or a local server such as Ollama or LM Studio. Create `cardwisp-model.json` in the Balatro save folder (`~/Library/Application Support/Balatro/` on macOS, `%AppData%\Balatro\` on Windows):
+
+```json
+{
+  "url": "https://api.example.com/v1/chat/completions",
+  "model": "your-model-name",
+  "api_key": "your-key",
+  "timeout_seconds": 120
+}
+```
+
+- `url` must be `https://`, or `http://` on `localhost` / `127.0.0.1`. For Ollama, use `http://127.0.0.1:11434/v1/chat/completions` and leave out `api_key`.
+- `timeout_seconds` can be 10 to 300 (default 45).
+- While this file exists, the game talks to that server directly and the bridge is not used. You get advice from the visible state, but **no checked numbers, verified scores, settings menu or companion window**.
+- The key is stored in plain text in that file on your computer. Use a key with a spending limit, and never share the file.
+- Delete the file to go back to the bridge.
+
+`model.example.json` in this folder is a minimal example for a local server.
+
+### Privacy and cost
 
 - The game syncs the visible state to the bridge on your own computer (`127.0.0.1:8765`) about once a second. **Nothing is sent to a model until you ask a question.**
-- Each question sends the visible state, the bookkeeping above, your question and up to eight recent chat messages to Anthropic through your Claude Code CLI. No other data is collected.
+- Each question sends the visible state, the checked facts, your question and up to eight recent chat messages to the model you chose. No other data is collected.
 - Hidden information stays hidden: face-down cards, unopened packs and the draw order are never read.
-- Cardwisp does not store or ask for API keys. `model.example.json` shows an optional advanced setup for connecting another compatible model server directly. That path skips the bridge's checks and bookkeeping.
+- In the recommended setup, Cardwisp does not store or ask for API keys; the Claude Code CLI uses your own sign-in.
 
-## Limitations
+### Limitations
 
 - Advice comes from a language model and can be wrong. Treat it as a second opinion.
 - Exact scores are only listed when every effect involved can be verified. They are left out when face-down cards are in hand, for Bosses that change scoring (such as The Flint), and for some Jokers. An unlisted play is not necessarily worse.
 - Some dynamic card text that cannot be resolved from the visible state is shown as `?`, and the model is told the value is unknown.
 - Built for mouse and keyboard on desktop. Controllers and touch screens are not supported.
 
-## Development
+### FAQ
+
+**Does Cardwisp play Balatro for me?**
+No. It only reads the visible state and writes advice. You make every move yourself.
+
+**Which AI models can I use?**
+Claude (Opus 5.5 or Fable 5.1) through Claude Code gets every feature. Any OpenAI-compatible API, including local models, can give basic advice through a direct connection. See [Using other AI models](#using-other-ai-models).
+
+**Is it free?**
+The mod is free and open source under the MIT License. Questions count toward your own AI account's usage or API bill.
+
+**Can it see my next cards or what is inside a pack?**
+No. Face-down cards, unopened packs and the draw order are never read.
+
+**Does it work on mobile, Switch or Apple Arcade?**
+No. Only the Steam version for PC/Mac can load mods.
+
+**Does it change my save?**
+No. It only reads the game state. The install script only copies the mod's own files.
+
+### Development
 
 ```sh
 python3 tests/run_all.py
@@ -79,46 +159,59 @@ The Lua tests use the LuaJIT library bundled with Steam Balatro on macOS. Set `B
 Layout:
 - `modules/core.lua`: reads the game state.
 - `modules/panel.lua`: in-game panel.
-- `modules/model.lua`: talks to the bridge.
-- `scripts/cli_bridge.py`: shared session, prompts and the Claude CLI.
+- `modules/model.lua`: talks to the bridge or a direct model server.
+- `scripts/cli_bridge.py`: shared session, prompts and the model CLIs.
 - `scripts/shop_decision.py`, `scripts/scene_decision.py` and `scripts/play_scores.py` with `scripts/hand_score.py`: the checked bookkeeping and the scorer.
 - `scripts/CardwispCompanion.swift` and `companion/index.html`: the macOS window.
 
 Design notes and known issues are in `docs/` (in Chinese).
 
-## License
+### License
 
-Released under the [MIT License](LICENSE). The license covers Cardwisp's own code and documents only. Balatro, Steamodded, Lovely and other mods are not covered, and Cardwisp contains no game assets. Cardwisp is a fan-made mod and is not affiliated with or endorsed by LocalThunk or Playstack.
+Released under the [MIT License](LICENSE). The license covers Cardwisp's own code and documents only. Balatro, Steamodded, Lovely and other mods are not covered, and Cardwisp contains no game assets. The screenshots show Balatro gameplay for illustration only; the game's art belongs to its owners. Cardwisp is a fan-made mod and is not affiliated with or endorsed by LocalThunk or Playstack.
 
 ---
 
-# 小丑牌灵（Cardwisp for Balatro）
+## 中文说明
 
-[English](#cardwisp-for-balatro) · **中文**
+小丑牌灵是装在 Balatro（小丑牌）里的 AI 顾问。牌局中打开面板，提个问题（或直接发送预填的问题），就能根据当前屏幕上的局面得到简短建议。**它只读取可见局面、给出文字建议，绝不替你出牌、买东西或执行任何操作。**
 
-小丑牌灵是装在 Balatro 里的 AI 顾问。牌局中打开面板，提个问题（或直接发送预填的问题），就能根据当前屏幕上的局面得到简短建议。**它只读取可见局面、给出文字建议，绝不替你出牌、买东西或执行任何操作。**
+![小丑牌灵独立窗口停靠在 Balatro 旁边，建议打出 9 的对子，已验证得分 1480，超过所需的 450](docs/images/play-zh.jpg)
 
-## 功能
+<sub>出牌时：牌灵列出已验证的得分（1480 对比所需 450），并解释为什么先出牌、不弃牌。右侧是 macOS 独立窗口。</sub>
+
+### 工作原理
+
+1. **游戏只分享你看得到的东西。** 模组读取可见局面（手牌、小丑、商店、盲注、金钱），发给**你自己电脑上**的桥接程序。这一步不会有任何数据离开你的电脑。
+2. **你提问。** 每个场景都有预填问题，比如「这个商店怎么选？」，也可以自己输入。
+3. **桥接程序先核对数字。** 问模型之前，先算好能确定的事实：价格、买完剩多少钱、利息档位、小丑格子、还差多少分，以及每种能确定的出牌组合的精确最终得分。
+4. **你的 AI 模型回答。** 桥接程序把局面、核对过的数据和你的问题一起发给模型，建议显示在游戏内面板或独立窗口里。
+
+![小丑牌灵在商店里给建议：只买小丑包，买完剩 8 美元，仍有 1 利息](docs/images/shop-zh.jpg)
+
+<sub>商店里：价格、利息和空余小丑格子在模型回答前就已经算好。</sub>
+
+### 功能
 
 - **游戏内聊天面板。** 点右上角「牌灵」或按 **F8**（Mac 键盘为 Fn + F8）打开。拖动面板左边缘可以调宽度。
 - **按场景预填问题。** 商店、开卡包、出牌、选盲注各有预填问题，可以直接发送，也可以自己改写。
-- **核对过的数字，不靠模型猜。** 提问前，牌灵会先算好能确定的事实：商店里是价格、买完剩多少钱、利息档位、小丑格子、卖旧买新的账目；出牌时是还差多少分、剩几手几弃，以及**能确定的出牌组合的精确最终得分**。
+- **核对过的数字，不靠模型猜。** 商店里是价格、买完剩多少钱、利息档位、小丑格子、卖旧买新的账目；出牌时是还差多少分、剩几手几弃，以及**能确定的出牌组合的精确最终得分**。
 - **跟随游戏语言。** 界面有简体中文和英语，其他语言回退英语；卡牌名称和效果按游戏自己的语言读取。
 - **macOS 可选独立窗口。** 建议可以显示在停靠游戏旁边的独立窗口里，而不是游戏画面内。
 
-## 运行要求
+### 运行要求
 
 - **电脑版 Balatro（Steam）。** 手机版、主机版和 Apple Arcade 版都不能装模组。
 - **[Lovely](https://github.com/ethangreen-dev/lovely-injector)** 和 **[Steamodded](https://github.com/Steamodded/smods)** 1.0.0~BETA-0301a 或更新版本。
 - **Python 3.9 或更新版本**，用于运行本机桥接程序。
-- **已安装并登录 [Claude Code](https://claude.com/claude-code)**：在终端运行一次 `claude` 完成登录。牌灵使用你自己的 Claude 账号，Claude 订阅或 `ANTHROPIC_API_KEY` 都可以，每次提问计入该账号的用量。
+- **一个 AI 模型。** 推荐安装并登录 **[Claude Code](https://claude.com/claude-code)**（在终端运行一次 `claude` 完成登录）。Claude 订阅或 `ANTHROPIC_API_KEY` 都可以，每次提问计入该账号的用量。其他模型见[接入其他 AI 模型](#接入其他-ai-模型)。
 - 使用 macOS 独立窗口需要 Xcode 命令行工具（`swiftc`），首次使用时自动编译。
 
 牌灵在 macOS 上开发和测试。游戏内面板和桥接程序都是普通的 Lua 与 Python，理论上也能在 Windows 上运行，但还没在 Windows 上测试过。
 
-## 安装
+### 安装
 
-1. 下载并把这个文件夹解压到任意位置。
+1. 从 [Releases](https://github.com/AxisXu/Cardwisp-for-Balatro/releases/latest) 下载 `Cardwisp-<版本号>.zip`，解压到任意位置。
 2. 把模组装进 Balatro 的 `Mods` 文件夹：
 
    ```sh
@@ -141,28 +234,73 @@ Released under the [MIT License](LICENSE). The license covers Cardwisp's own cod
 
 卸载：删除 `Mods/balatro-assistant/`。
 
-## 使用
+### 使用
 
 - 用「牌灵」按钮或 **F8** 打开、收起面板。Enter 发送，Esc 离开输入框。支持中文等输入法，选完词再按 Enter。
 - 面板里的设置图标可以选择模型（Opus 5.5 或 Fable 5.1）、思考强度，以及在游戏内还是独立窗口显示。设置从下一次提问起生效。
 - 模型回答期间局面一旦变化，旧回答会被丢弃并提示重新提问，不会拿过时的局面给你建议。
 - 聊天记录只保存在桥接程序的内存里，开新局或关闭桥接程序后清空。
 
-## 隐私与费用
+### 接入其他 AI 模型
+
+牌灵有两种方式连接模型。
+
+**1. 通过桥接程序（推荐，功能完整）。** 桥接程序用你自己的账号调用 Claude Code 命令行。核对数据、已验证得分、模型与强度设置、独立窗口全部可用。面板目前提供 Opus 5.5 和 Fable 5.1。桥接程序里已有 Codex 命令行的接入代码，但还没在面板里开放。
+
+**2. 直连任意 OpenAI 兼容接口（基础建议）。** OpenAI、DeepSeek、OpenRouter，以及 Ollama、LM Studio 等本地模型服务都可以。在 Balatro 存档文件夹（macOS 是 `~/Library/Application Support/Balatro/`，Windows 是 `%AppData%\Balatro\`）里新建 `cardwisp-model.json`：
+
+```json
+{
+  "url": "https://api.example.com/v1/chat/completions",
+  "model": "your-model-name",
+  "api_key": "your-key",
+  "timeout_seconds": 120
+}
+```
+
+- `url` 必须是 `https://`，或者指向 `localhost` / `127.0.0.1` 的 `http://`。用 Ollama 时填 `http://127.0.0.1:11434/v1/chat/completions`，不用写 `api_key`。
+- `timeout_seconds` 可填 10 到 300，默认 45。
+- 这个文件存在时，游戏直接连这个服务，不经过桥接程序。你能得到基于可见局面的建议，但**没有核对数据、已验证得分、设置菜单和独立窗口**。
+- 密钥以明文保存在你电脑上的这个文件里。请使用设了消费上限的密钥，也不要把文件发给别人。
+- 删除这个文件即可回到桥接程序。
+
+本文件夹里的 `model.example.json` 是连接本地模型服务的最简示例。
+
+### 隐私与费用
 
 - 游戏每秒把可见局面同步给**你自己电脑上**的桥接程序（`127.0.0.1:8765`）。**你不提问，就不会有任何内容发给模型。**
-- 每次提问会把可见局面、上面那些核对数据、你的问题和最多八条近期对话，通过你的 Claude Code 命令行发给 Anthropic。除此之外不收集任何数据。
+- 每次提问会把可见局面、核对过的数据、你的问题和最多八条近期对话发给你选的模型。除此之外不收集任何数据。
 - 隐藏信息不会被读取：背面朝下的牌、没打开的卡包和抽牌顺序都看不到。
-- 牌灵不保存也不索要 API 密钥。`model.example.json` 是可选的进阶配置示例，用来直连其他兼容的模型服务；这条路径不经过桥接程序的核对数据。
+- 推荐配置下，牌灵不保存也不索要 API 密钥，Claude Code 命令行使用你自己的登录。
 
-## 已知限制
+### 已知限制
 
 - 建议来自语言模型，可能出错，请当作参考意见。
 - 只有涉及的每个效果都能确认时，才会列出精确得分。手里有背面朝下的牌、遇到会改变计分的 Boss（如燧石）、或者有部分小丑在场时，不会列出得分。没列出的出牌不代表分数更低。
 - 少数卡面动态数值无法从可见局面确定时，会显示为 `?`，模型也会被告知该数值未知。
 - 为桌面键鼠设计，不支持手柄和触屏。
 
-## 开发
+### 常见问题
+
+**牌灵会替我打 Balatro 吗？**
+不会。它只读取可见局面、写出建议，每一步都由你自己操作。
+
+**能用哪些 AI 模型？**
+通过 Claude Code 使用 Claude（Opus 5.5 或 Fable 5.1）功能最完整。任何 OpenAI 兼容接口（包括本地模型）都可以直连，给出基础建议。见[接入其他 AI 模型](#接入其他-ai-模型)。
+
+**收费吗？**
+模组本身免费，以 MIT 许可证开源。提问会计入你自己 AI 账号的用量或 API 账单。
+
+**它能看到下一张牌或卡包里的内容吗？**
+不能。背面朝下的牌、没打开的卡包和抽牌顺序都不会被读取。
+
+**手机版、Switch 或 Apple Arcade 版能用吗？**
+不能。只有电脑上的 Steam 版能装模组。
+
+**会改动我的存档吗？**
+不会。它只读取游戏局面，安装脚本也只复制本模组自己的文件。
+
+### 开发
 
 ```sh
 python3 tests/run_all.py
@@ -173,13 +311,13 @@ Lua 测试在 macOS 上使用 Steam 版 Balatro 自带的 LuaJIT 库；其他位
 代码结构：
 - `modules/core.lua`：读取局面。
 - `modules/panel.lua`：游戏内面板。
-- `modules/model.lua`：与桥接程序通信。
-- `scripts/cli_bridge.py`：共享会话、提示词和 Claude 命令行调用。
+- `modules/model.lua`：与桥接程序或直连的模型服务通信。
+- `scripts/cli_bridge.py`：共享会话、提示词和模型命令行调用。
 - `scripts/shop_decision.py`、`scripts/scene_decision.py`，以及 `scripts/play_scores.py` 配合 `scripts/hand_score.py`：核对数据和计分器。
 - `scripts/CardwispCompanion.swift` 与 `companion/index.html`：macOS 独立窗口。
 
 设计说明与已知问题见 `docs/`。
 
-## 许可证
+### 许可证
 
-以 [MIT 许可证](LICENSE)发布。许可证只覆盖牌灵自己的代码与文档；Balatro 游戏本身、Steamodded、Lovely 及其他模组不在此列，牌灵也不包含任何游戏资源。牌灵是玩家自制模组，与 LocalThunk、Playstack 没有关联，也未获其认可。
+以 [MIT 许可证](LICENSE)发布。许可证只覆盖牌灵自己的代码与文档；Balatro 游戏本身、Steamodded、Lovely 及其他模组不在此列，牌灵也不包含任何游戏资源。截图展示的 Balatro 游戏画面仅作说明用途，美术版权归游戏权利方所有。牌灵是玩家自制模组，与 LocalThunk、Playstack 没有关联，也未获其认可。
