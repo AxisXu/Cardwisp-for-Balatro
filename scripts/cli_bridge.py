@@ -1,4 +1,4 @@
-"""把本机已登录的 Codex CLI 接到牌灵的只读聊天协议。"""
+"""牌灵本机桥接：把游戏内只读聊天接到 Claude Code CLI，或任意 OpenAI 兼容接口。"""
 
 import argparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -14,6 +14,9 @@ import tempfile
 import threading
 import time
 import sys
+from urllib.error import HTTPError
+from urllib.parse import urlsplit
+from urllib.request import Request, urlopen
 
 SCRIPT_DIR = str(Path(__file__).resolve().parent)
 if SCRIPT_DIR not in sys.path:
@@ -46,9 +49,17 @@ GOAL_OPTIONS = ("clear", "endless")
 DEFAULT_SETTINGS = {"model": MODEL, "effort": "high", "display_mode": "inside", "play_goal": "clear"}
 
 
+# 用户在 models.json 里配置的 OpenAI 兼容接口模型：id → 配置。启动时由 install_custom_models 装入。
+CUSTOM_MODELS = {}
+CUSTOM_EFFORTS = ("low", "medium", "high")
+MAX_CUSTOM_MODELS = 4
+LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
+
+
 def capabilities():
+    advertised = list(ADVERTISED_MODELS) + [(key, entry["name"]) for key, entry in CUSTOM_MODELS.items()]
     return {"models": [{"id": key, "name": name, "efforts": list(MODEL_EFFORTS[key])}
-                       for key, name in ADVERTISED_MODELS],
+                       for key, name in advertised],
             "goals": [{"id": key, "enabled": key in AVAILABLE_GOALS} for key in GOAL_OPTIONS]}
 PLAY_GOAL_INSTRUCTIONS = {
     "clear": (" The player's goal is to clear Ante 8. Prioritize surviving the next blind and"
@@ -272,12 +283,12 @@ class Recorder:
 class SessionState:
     """游戏内与浏览器共用的本局状态；只持久化非敏感偏好。"""
 
-    def __init__(self, settings_path=None, clock=time.monotonic, recorder=None):
+    def __init__(self, settings_path=None, clock=time.monotonic, recorder=None, defaults=None):
         self.lock = threading.RLock()
         self.clock = clock
         self.recorder = recorder
         self.settings_path = settings_path or default_settings_path()
-        self.settings = DEFAULT_SETTINGS.copy()
+        self.settings = (defaults or DEFAULT_SETTINGS).copy()
         try:
             loaded = json.loads(self.settings_path.read_text(encoding="utf-8"))
             self._validate_settings(loaded)
@@ -618,8 +629,137 @@ def run_claude(messages, model=MODEL, effort="high", executable=None):
     return answer[:MAX_REPLY]
 
 
+def load_custom_models(path, environ=None):
+    """读 models.json。文件不存在返回空列表；内容不合规抛 ValueError（消息给桥接窗口看）。"""
+    environ = os.environ if environ is None else environ
+    path = Path(path)
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise ValueError("cannot read %s: %s" % (path, exc)) from exc
+    items = data.get("models") if isinstance(data, dict) else None
+    if not isinstance(items, list) or not items:
+        raise ValueError('"models" must be a non-empty list')
+    if len(items) > MAX_CUSTOM_MODELS:
+        raise ValueError("at most %d models" % MAX_CUSTOM_MODELS)
+    entries, seen = [], set()
+    for index, item in enumerate(items, 1):
+        where = "models[%d]" % index
+        if not isinstance(item, dict):
+            raise ValueError(where + " must be an object")
+        model, url = item.get("model"), item.get("url")
+        if not isinstance(model, str) or not model.strip() or len(model) > 128:
+            raise ValueError(where + ': "model" is required')
+        parts = urlsplit(url) if isinstance(url, str) else None
+        if not parts or not parts.hostname or not (
+                parts.scheme == "https" or (parts.scheme == "http" and parts.hostname in LOCAL_HOSTS)):
+            raise ValueError(where + ': "url" must be https://, or http:// on localhost')
+        key_id = "api:" + model.strip()
+        if key_id in seen:
+            raise ValueError(where + ": duplicate model " + model)
+        seen.add(key_id)
+        name = item.get("name", model)
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError(where + ': "name" must be text')
+        api_key = item.get("api_key")
+        if "api_key_env" in item:
+            api_key = environ.get(str(item["api_key_env"]))
+            if not api_key:
+                raise ValueError(where + ": environment variable %s is not set" % item["api_key_env"])
+        if api_key is not None and (not isinstance(api_key, str) or not api_key.strip()):
+            raise ValueError(where + ': "api_key" must be text')
+        timeout = item.get("timeout_seconds", 120)
+        if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not 10 <= timeout <= 300:
+            raise ValueError(where + ': "timeout_seconds" must be 10-300')
+        efforts = item.get("efforts")
+        if efforts is None:
+            efforts = ["default"]
+        elif (not isinstance(efforts, list) or not efforts or len(set(efforts)) != len(efforts)
+              or any(level not in CUSTOM_EFFORTS for level in efforts)):
+            raise ValueError(where + ': "efforts" may only list low, medium, high')
+        entries.append({"id": key_id, "name": name.strip()[:24], "model": model.strip(), "url": url,
+                        "api_key": api_key.strip() if api_key else None, "timeout": timeout,
+                        "efforts": list(efforts)})
+    return entries
+
+
+def install_custom_models(entries):
+    for entry in entries:
+        CUSTOM_MODELS[entry["id"]] = entry
+        MODEL_EFFORTS[entry["id"]] = tuple(entry["efforts"])
+
+
+def default_settings_for(entries, claude_available):
+    """没装 Claude Code、又配了兼容接口模型时，默认用第一个，免得开箱第一问就报「找不到命令行」。"""
+    defaults = DEFAULT_SETTINGS.copy()
+    if entries and not claude_available:
+        first = entries[0]
+        defaults["model"] = first["id"]
+        defaults["effort"] = "high" if "high" in first["efforts"] else first["efforts"][0]
+    return defaults
+
+
+def _merge_roles(messages):
+    """有些兼容接口不接受连续两条同角色消息；合并后语义不变。"""
+    merged = []
+    for item in messages:
+        role, content = item.get("role"), str(item.get("content") or "")
+        if merged and merged[-1]["role"] == role:
+            merged[-1]["content"] += "\n\n" + content
+        else:
+            merged.append({"role": role, "content": content})
+    return merged
+
+
+THINK_BLOCK = re.compile(r"<think>.*?</think>", re.S)
+
+
+def run_openai_compatible(messages, entry, effort="default"):
+    """直接调 Chat Completions 接口。失败原因只打印到桥接窗口（不含密钥），面板只看到通用错误码。"""
+    if effort not in entry["efforts"]:
+        raise RuntimeError("bad_settings")
+    body = {"model": entry["model"], "messages": _merge_roles(messages), "stream": False}
+    if effort != "default":
+        body["reasoning_effort"] = effort
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    if entry.get("api_key"):
+        headers["Authorization"] = "Bearer " + entry["api_key"]
+    request = Request(entry["url"], data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
+                      headers=headers, method="POST")
+    try:
+        with urlopen(request, timeout=entry["timeout"]) as response:
+            raw = response.read(4 * 1024 * 1024)
+    except HTTPError as exc:
+        detail = exc.read(400).decode("utf-8", "replace") if exc.fp else ""
+        if entry.get("api_key"):
+            detail = detail.replace(entry["api_key"], "***")
+        print("Model API failed / 接口调用失败 %s HTTP %s：%s" % (entry["name"], exc.code, detail.strip()), flush=True)
+        raise RuntimeError("cli_failed") from exc
+    except (TimeoutError, OSError) as exc:
+        reason = getattr(exc, "reason", exc)
+        if isinstance(reason, TimeoutError) or "timed out" in str(reason):
+            raise RuntimeError("timeout") from exc
+        print("Model API unreachable / 接口连不上 %s：%s" % (entry["name"], reason), flush=True)
+        raise RuntimeError("cli_failed") from exc
+    try:
+        content = json.loads(raw)["choices"][0]["message"]["content"]
+    except (ValueError, KeyError, IndexError, TypeError) as exc:
+        print("Model API returned an unexpected format / 接口返回格式不对 %s" % entry["name"], flush=True)
+        raise RuntimeError("bad_response") from exc
+    if isinstance(content, list):
+        content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
+    answer = THINK_BLOCK.sub("", content if isinstance(content, str) else "").strip()
+    if not answer:
+        raise RuntimeError("bad_response")
+    return answer[:MAX_REPLY]
+
+
 def run_model(messages, model=MODEL, effort="high"):
-    """按模型前缀分派：claude-* 走 Claude CLI，其余走 Codex CLI。"""
+    """按模型分派：models.json 里的走兼容接口，claude-* 走 Claude CLI，其余走 Codex CLI。"""
+    if model in CUSTOM_MODELS:
+        return run_openai_compatible(messages, CUSTOM_MODELS[model], effort)
     if str(model).startswith("claude-"):
         return run_claude(messages, model, effort)
     return run_codex(messages, model, effort)
@@ -797,15 +937,27 @@ def make_handler(runner=run_model, state=None, companion_opener=open_native_comp
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Cardwisp local bridge to the Claude CLI. 牌灵本机桥接服务。")
+    parser = argparse.ArgumentParser(description="Cardwisp local bridge to the Claude CLI or an OpenAI-compatible API. 牌灵本机桥接服务。")
     parser.add_argument("--port", type=int, default=PORT)
     parser.add_argument("--record", type=Path, default=None,
                         help="Append state changes and Q&A as JSONL to this folder (read-only, never touches saves). 把局面变化与问答写成 JSONL 到这个目录。")
+    parser.add_argument("--models", type=Path, default=None,
+                        help="OpenAI-compatible models config (default: models.json next to settings.json). OpenAI 兼容接口模型配置。")
     args = parser.parse_args()
     if not 1 <= args.port <= 65535:
         parser.error("端口必须在 1–65535 之间")
+    models_path = args.models or default_settings_path().parent / "models.json"
+    try:
+        entries = load_custom_models(models_path)
+    except ValueError as exc:
+        print("models.json ignored / 已忽略 models.json：" + str(exc), flush=True)
+        entries = []
+    install_custom_models(entries)
+    if entries:
+        print("Extra models / 额外模型：" + ", ".join("%s (%s)" % (e["name"], e["model"]) for e in entries), flush=True)
+    claude_available = bool(shutil.which("claude")) or (Path.home() / ".local/bin/claude").is_file()
     recorder = Recorder(args.record) if args.record else None
-    state = SessionState(recorder=recorder)
+    state = SessionState(recorder=recorder, defaults=default_settings_for(entries, claude_available))
     if recorder is not None:
         print("Recording to / 对局记录：" + str(recorder.path), flush=True)
     state.restore_once(default_settings_path().parent / ".restore-once.json")

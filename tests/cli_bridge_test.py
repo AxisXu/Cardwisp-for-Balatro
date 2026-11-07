@@ -1,6 +1,6 @@
 """不调用远端模型，验证本机桥接的协议与 CLI 约束。"""
 
-from http.server import HTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import importlib.util
 import json
 from pathlib import Path
@@ -519,6 +519,131 @@ class SettingsMenu(unittest.TestCase):
             self.assertEqual(state.view()["settings"]["effort"], "max")
             state.update_settings({"effort": "xhigh"})
             self.assertEqual(state.view()["settings"]["effort"], "xhigh")
+
+
+class CompatibleApiModels(unittest.TestCase):
+    """桥接直接调 OpenAI 兼容接口：第三方模型也能用设置菜单、外置窗口和核对数据。"""
+
+    def write_config(self, temp, data):
+        path = Path(temp) / "models.json"
+        path.write_text(json.dumps(data), encoding="utf-8")
+        return path
+
+    def test_读取配置_密钥可来自环境变量_强度默认只有一档(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self.write_config(temp, {"models": [
+                {"name": "Step 5", "model": "step-5-preview",
+                 "url": "https://api.example.com/v1/chat/completions", "api_key_env": "STEP_KEY"},
+                {"model": "qwen3", "url": "http://127.0.0.1:11434/v1/chat/completions",
+                 "efforts": ["low", "high"], "timeout_seconds": 200}]})
+            entries = bridge.load_custom_models(path, environ={"STEP_KEY": "sk-test"})
+        self.assertEqual([e["id"] for e in entries], ["api:step-5-preview", "api:qwen3"])
+        self.assertEqual(entries[0]["name"], "Step 5")
+        self.assertEqual(entries[0]["api_key"], "sk-test")
+        self.assertEqual(entries[0]["efforts"], ["default"])
+        self.assertEqual(entries[0]["timeout"], 120)
+        self.assertEqual(entries[1]["name"], "qwen3")
+        self.assertIsNone(entries[1]["api_key"])
+        self.assertEqual(entries[1]["efforts"], ["low", "high"])
+        self.assertEqual(entries[1]["timeout"], 200)
+
+    def test_拒绝不安全或不完整的配置(self):
+        bad = [
+            {"models": [{"model": "m", "url": "http://api.example.com/v1/chat/completions"}]},
+            {"models": [{"url": "https://api.example.com/v1/chat/completions"}]},
+            {"models": [{"model": "m", "url": "https://x.example/v1", "efforts": ["turbo"]}]},
+            {"models": [{"model": "m", "url": "https://x.example/v1", "api_key_env": "MISSING"}]},
+            {"models": [{"model": "m", "url": "https://x.example/v1"}] * 2},
+            {"models": [{"model": "m%d" % i, "url": "https://x.example/v1"} for i in range(5)]},
+            {"models": [{"model": "m", "url": "https://x.example/v1", "timeout_seconds": 5}]},
+        ]
+        for data in bad:
+            with tempfile.TemporaryDirectory() as temp, self.subTest(data=data):
+                with self.assertRaises(ValueError):
+                    bridge.load_custom_models(self.write_config(temp, data), environ={})
+
+    def test_没有配置文件就没有额外模型(self):
+        with tempfile.TemporaryDirectory() as temp:
+            self.assertEqual(bridge.load_custom_models(Path(temp) / "models.json", environ={}), [])
+
+    def test_装上后出现在设置菜单_可以选中(self):
+        entry = {"id": "api:step-5-preview", "name": "Step 5", "model": "step-5-preview",
+                 "url": "https://x.example/v1", "api_key": None, "timeout": 120, "efforts": ["default"]}
+        with patch.dict(bridge.MODEL_EFFORTS), patch.dict(bridge.CUSTOM_MODELS, clear=True), \
+                tempfile.TemporaryDirectory() as temp:
+            bridge.install_custom_models([entry])
+            caps = bridge.capabilities()
+            self.assertEqual(caps["models"][-1], {"id": "api:step-5-preview", "name": "Step 5", "efforts": ["default"]})
+            state = bridge.SessionState(settings_path=Path(temp) / "settings.json")
+            state.update_settings({"model": "api:step-5-preview", "effort": "default"})
+            self.assertEqual(state.view()["settings"]["model"], "api:step-5-preview")
+
+    def test_没装_Claude_Code_时默认用第一个额外模型(self):
+        entry = {"id": "api:m", "name": "M", "model": "m", "url": "https://x.example/v1",
+                 "api_key": None, "timeout": 120, "efforts": ["default"]}
+        self.assertEqual(bridge.default_settings_for([entry], claude_available=False)["model"], "api:m")
+        self.assertEqual(bridge.default_settings_for([entry], claude_available=False)["effort"], "default")
+        self.assertEqual(bridge.default_settings_for([entry], claude_available=True)["model"], "claude-opus-5-5")
+        self.assertEqual(bridge.default_settings_for([], claude_available=False)["model"], "claude-opus-5-5")
+
+    def serve(self, status, reply):
+        seen = {}
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                seen["auth"] = self.headers.get("Authorization")
+                seen["body"] = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                data = json.dumps(reply).encode("utf-8")
+                self.send_response(status)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+            def log_message(self, *args):
+                pass
+
+        server = HTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        return "http://127.0.0.1:%d/v1/chat/completions" % server.server_port, seen
+
+    def test_调用接口_带密钥_合并相邻同角色消息_去掉思考段(self):
+        url, seen = self.serve(200, {"choices": [{"message": {"content": "<think>算一下</think>\n先买行星牌。"}}]})
+        entry = {"id": "api:m", "name": "M", "model": "m", "url": url, "api_key": "sk-test",
+                 "timeout": 30, "efforts": ["default"]}
+        messages = [{"role": "system", "content": "规则"}, {"role": "user", "content": "局面"},
+                    {"role": "user", "content": "怎么买？"}]
+        answer = bridge.run_openai_compatible(messages, entry, "default")
+        self.assertEqual(answer, "先买行星牌。")
+        self.assertEqual(seen["auth"], "Bearer sk-test")
+        self.assertEqual(seen["body"]["model"], "m")
+        self.assertIs(seen["body"]["stream"], False)
+        self.assertNotIn("reasoning_effort", seen["body"])
+        self.assertEqual([m["role"] for m in seen["body"]["messages"]], ["system", "user"])
+        self.assertEqual(seen["body"]["messages"][1]["content"], "局面\n\n怎么买？")
+
+    def test_声明了强度就传_reasoning_effort_没有密钥就不带鉴权头(self):
+        url, seen = self.serve(200, {"choices": [{"message": {"content": [{"type": "text", "text": "出对子。"}]}}]})
+        entry = {"id": "api:m", "name": "M", "model": "m", "url": url, "api_key": None,
+                 "timeout": 30, "efforts": ["low", "high"]}
+        with patch.dict(bridge.CUSTOM_MODELS, {"api:m": entry}), patch.dict(bridge.MODEL_EFFORTS, {"api:m": ("low", "high")}):
+            answer = bridge.run_model([{"role": "user", "content": "怎么出？"}], "api:m", "low")
+        self.assertEqual(answer, "出对子。")
+        self.assertEqual(seen["body"]["reasoning_effort"], "low")
+        self.assertIsNone(seen["auth"])
+
+    def test_接口报错时面板只看到通用错误_密钥不进日志(self):
+        url, _ = self.serve(401, {"error": {"message": "invalid key"}})
+        entry = {"id": "api:m", "name": "M", "model": "m", "url": url, "api_key": "sk-secret",
+                 "timeout": 30, "efforts": ["default"]}
+        printed = []
+        with patch("builtins.print", side_effect=lambda *a, **k: printed.append(" ".join(map(str, a)))):
+            with self.assertRaisesRegex(RuntimeError, "cli_failed"):
+                bridge.run_openai_compatible([{"role": "user", "content": "q"}], entry, "default")
+        self.assertTrue(any("401" in line for line in printed))
+        self.assertFalse(any("sk-secret" in line for line in printed))
 
 if __name__ == "__main__":
     unittest.main()

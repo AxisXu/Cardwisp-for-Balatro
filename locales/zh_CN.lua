@@ -29,10 +29,10 @@ return {
  error_settings_unavailable='无法保存设置，请检查本机配置目录权限。',
  error_companion_unavailable='无法打开独立牌灵窗口，请检查本机 Swift 工具链。',
  error_unsupported='当前模型服务不支持此设置。',
- setting_model='模型',setting_effort='强度',setting_goal='目标',setting_location='位置',
+ setting_model='模型',setting_effort='强度',setting_goal='目标',
  goal_clear='通关',goal_endless='无尽冲分',goal_unavailable='（未开放）',
- effort_low='低',effort_medium='中',effort_high='高',effort_xhigh='极高',effort_max='最大',effort_ultra='超高',
- location_inside='游戏内',location_outside='↗ 游戏外',
+ effort_low='低',effort_medium='中',effort_high='高',effort_xhigh='极高',effort_max='最大',effort_default='默认',effort_ultra='超高',
+ tip_settings='设置',tip_outside='移到游戏外的独立窗口',tip_collapse='收起面板',
  placeholder='输入问题…',
  resize='拖动调宽',empty_shop='当前没有可读取的商品',
 }

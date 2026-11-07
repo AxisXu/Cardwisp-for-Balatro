@@ -67,7 +67,7 @@ To check whether the advice actually helps, we let a test harness follow Cardwis
 - **Balatro for PC/Mac (Steam).** Mobile, console and Apple Arcade versions cannot load mods.
 - **[Lovely](https://github.com/ethangreen-dev/lovely-injector)** and **[Steamodded](https://github.com/Steamodded/smods)** 1.0.0~BETA-0301a or newer.
 - **Python 3.9 or newer**, to run the local bridge.
-- **An AI model.** The recommended setup is **[Claude Code](https://claude.com/claude-code)** installed and signed in (run `claude` once in a terminal to log in). It works with a Claude subscription or with an `ANTHROPIC_API_KEY`, and each question counts toward that account's usage. Other models are covered in [Using other AI models](#using-other-ai-models).
+- **An AI model.** The recommended setup is **[Claude Code](https://claude.com/claude-code)** installed and signed in (run `claude` once in a terminal to log in). It works with a Claude subscription or with an `ANTHROPIC_API_KEY`, and each question counts toward that account's usage. Other models, such as OpenAI, DeepSeek, StepFun or a local model, can be added through any OpenAI-compatible API. See [Using other AI models](#using-other-ai-models).
 - For the macOS companion window: Xcode Command Line Tools (`swiftc`). It is compiled on first use.
 
 Cardwisp is developed and tested on macOS. The in-game panel and the bridge are plain Lua and Python and should work on Windows too, but Windows has not been tested yet.
@@ -100,7 +100,7 @@ To uninstall, delete `Mods/balatro-assistant/`.
 ### Usage
 
 - Open or close the panel with the **Cardwisp** button or **F8**. Press Enter to send and Esc to leave the input box. Chinese and other IME input is supported; finish composing before pressing Enter.
-- The settings icon in the panel picks the model (Opus 5.5 or Fable 5.1), the thinking effort, and whether advice shows inside the game or in the companion window. Settings take effect from the next question.
+- The icons at the top right of the panel are, from left to right: **settings** (model and thinking effort), **move to a separate window** (the companion window), and **collapse**. Hover over an icon to see what it does. Settings take effect from the next question.
 - If the game state changes while the model is answering, the answer is discarded and you are asked to try again, so you never get advice for a state that no longer exists.
 - Chat history lives in the bridge's memory and is cleared when a new run starts or the bridge stops.
 
@@ -108,9 +108,34 @@ To uninstall, delete `Mods/balatro-assistant/`.
 
 Cardwisp can reach a model in two ways.
 
-**1. Through the bridge (recommended, all features).** The bridge calls the Claude Code CLI with your own account. You get the checked numbers, verified scores, model and effort settings, and the companion window. The panel currently offers Opus 5.5 and Fable 5.1. The bridge also contains a Codex CLI backend, but it is not offered in the panel yet.
+**1. Through the bridge (recommended, all features).** The game always talks to the bridge, and the bridge calls the model. You get the checked numbers, verified scores, the model and effort settings, and the companion window. The bridge can call:
 
-**2. Direct connection to any OpenAI-compatible API (basic advice).** This works with OpenAI, DeepSeek, OpenRouter, or a local server such as Ollama or LM Studio. Create `cardwisp-model.json` in the Balatro save folder (`~/Library/Application Support/Balatro/` on macOS, `%AppData%\Balatro\` on Windows):
+- **Claude through the Claude Code CLI**, with your own account. Opus 5.5 and Fable 5.1 are listed by default.
+- **Any OpenAI-compatible API**: OpenAI, DeepSeek, StepFun, OpenRouter, or a local server such as Ollama or LM Studio. Create `models.json` in the Cardwisp settings folder (`~/Library/Application Support/Cardwisp/` on macOS, `%AppData%\Cardwisp\` on Windows):
+
+  ```json
+  {
+    "models": [
+      {
+        "name": "My Model",
+        "model": "your-model-name",
+        "url": "https://api.example.com/v1/chat/completions",
+        "api_key_env": "MY_MODEL_API_KEY"
+      }
+    ]
+  }
+  ```
+
+  Restart the bridge. It prints `Extra models: ...`, and the model appears in the settings menu next to Opus and Fable. If Claude Code is not installed, the first model in this file becomes the default.
+
+  - `name` is the label in the settings menu. Keep it short.
+  - `url` must be `https://`, or `http://` on `localhost` / `127.0.0.1`. For Ollama, use `http://127.0.0.1:11434/v1/chat/completions` and leave out the key.
+  - The key: `api_key_env` names an environment variable that holds it (safer). Alternatively, `"api_key": "..."` stores it in plain text in this file.
+  - Optional: `"efforts": ["low", "medium", "high"]` adds effort levels, sent as `reasoning_effort`. Only use this if the model supports that parameter. Without it, the model has a single "Default" level.
+  - Optional: `"timeout_seconds"` from 10 to 300 (default 120). At most 4 models.
+  - If you used the direct connection below before, delete `cardwisp-model.json` from the Balatro save folder. Otherwise the game keeps bypassing the bridge.
+
+**2. Direct connection from the game (basic advice, no bridge).** This works with OpenAI, DeepSeek, OpenRouter, or a local server such as Ollama or LM Studio. Create `cardwisp-model.json` in the Balatro save folder (`~/Library/Application Support/Balatro/` on macOS, `%AppData%\Balatro\` on Windows):
 
 ```json
 {
@@ -123,7 +148,7 @@ Cardwisp can reach a model in two ways.
 
 - `url` must be `https://`, or `http://` on `localhost` / `127.0.0.1`. For Ollama, use `http://127.0.0.1:11434/v1/chat/completions` and leave out `api_key`.
 - `timeout_seconds` can be 10 to 300 (default 45).
-- While this file exists, the game talks to that server directly and the bridge is not used. You get advice from the visible state, but **no checked numbers, verified scores, settings menu or companion window**.
+- While this file exists, the game talks to that server directly and the bridge is not used. You get advice from the visible state, but **no checked numbers, verified scores, settings menu or companion window**. To keep those, add the same model to the bridge's `models.json` instead (option 1).
 - The key is stored in plain text in that file on your computer. Use a key with a spending limit, and never share the file.
 - Delete the file to go back to the bridge.
 
@@ -134,7 +159,8 @@ Cardwisp can reach a model in two ways.
 - The game syncs the visible state to the bridge on your own computer (`127.0.0.1:8765`) about once a second. **Nothing is sent to a model until you ask a question.**
 - Each question sends the visible state, the checked facts, your question and up to eight recent chat messages to the model you chose. No other data is collected.
 - Hidden information stays hidden: face-down cards, unopened packs and the draw order are never read.
-- In the recommended setup, Cardwisp does not store or ask for API keys; the Claude Code CLI uses your own sign-in.
+- With Claude Code, Cardwisp does not store or ask for API keys; the Claude Code CLI uses your own sign-in.
+- A key you put in `models.json` stays on your computer and is only sent to that model's `url`.
 
 ### Limitations
 
@@ -149,7 +175,7 @@ Cardwisp can reach a model in two ways.
 No. It only reads the visible state and writes advice. You make every move yourself.
 
 **Which AI models can I use?**
-Claude (Opus 5.5 or Fable 5.1) through Claude Code gets every feature. Any OpenAI-compatible API, including local models, can give basic advice through a direct connection. See [Using other AI models](#using-other-ai-models).
+Claude (Opus 5.5 or Fable 5.1) through Claude Code gets every feature. Any OpenAI-compatible API, including local models, can be added to the bridge with the same features, or connected directly for basic advice. See [Using other AI models](#using-other-ai-models).
 
 **Is the advice any good?**
 Following Cardwisp's advice for every decision won 7 of 10 runs on White Stake. See [Tested results](#tested-results). It can still be wrong, so treat it as a second opinion.
@@ -240,7 +266,7 @@ Released under the [MIT License](LICENSE). The license covers Cardwisp's own cod
 - **电脑版 Balatro（Steam）。** 手机版、主机版和 Apple Arcade 版都不能装模组。
 - **[Lovely](https://github.com/ethangreen-dev/lovely-injector)** 和 **[Steamodded](https://github.com/Steamodded/smods)** 1.0.0~BETA-0301a 或更新版本。
 - **Python 3.9 或更新版本**，用于运行本机桥接程序。
-- **一个 AI 模型。** 推荐安装并登录 **[Claude Code](https://claude.com/claude-code)**（在终端运行一次 `claude` 完成登录）。Claude 订阅或 `ANTHROPIC_API_KEY` 都可以，每次提问计入该账号的用量。其他模型见[接入其他 AI 模型](#接入其他-ai-模型)。
+- **一个 AI 模型。** 推荐安装并登录 **[Claude Code](https://claude.com/claude-code)**（在终端运行一次 `claude` 完成登录）。Claude 订阅或 `ANTHROPIC_API_KEY` 都可以，每次提问计入该账号的用量。OpenAI、DeepSeek、阶跃星辰或本地模型等，可以通过任意 OpenAI 兼容接口接入，见[接入其他 AI 模型](#接入其他-ai-模型)。
 - 使用 macOS 独立窗口需要 Xcode 命令行工具（`swiftc`），首次使用时自动编译。
 
 牌灵在 macOS 上开发和测试。游戏内面板和桥接程序都是普通的 Lua 与 Python，理论上也能在 Windows 上运行，但还没在 Windows 上测试过。
@@ -273,7 +299,7 @@ Released under the [MIT License](LICENSE). The license covers Cardwisp's own cod
 ### 使用
 
 - 用「牌灵」按钮或 **F8** 打开、收起面板。Enter 发送，Esc 离开输入框。支持中文等输入法，选完词再按 Enter。
-- 面板里的设置图标可以选择模型（Opus 5.5 或 Fable 5.1）、思考强度，以及在游戏内还是独立窗口显示。设置从下一次提问起生效。
+- 面板右上角的图标从左到右是：**设置**（模型与思考强度）、**移到游戏外的独立窗口**、**收起**。鼠标移到图标上会显示用途。设置从下一次提问起生效。
 - 模型回答期间局面一旦变化，旧回答会被丢弃并提示重新提问，不会拿过时的局面给你建议。
 - 聊天记录只保存在桥接程序的内存里，开新局或关闭桥接程序后清空。
 
@@ -281,9 +307,34 @@ Released under the [MIT License](LICENSE). The license covers Cardwisp's own cod
 
 牌灵有两种方式连接模型。
 
-**1. 通过桥接程序（推荐，功能完整）。** 桥接程序用你自己的账号调用 Claude Code 命令行。核对数据、已验证得分、模型与强度设置、独立窗口全部可用。面板目前提供 Opus 5.5 和 Fable 5.1。桥接程序里已有 Codex 命令行的接入代码，但还没在面板里开放。
+**1. 通过桥接程序（推荐，功能完整）。** 游戏始终连桥接程序，由桥接程序调用模型。核对数据、已验证得分、模型与强度设置、独立窗口全部可用。桥接程序可以调用：
 
-**2. 直连任意 OpenAI 兼容接口（基础建议）。** OpenAI、DeepSeek、OpenRouter，以及 Ollama、LM Studio 等本地模型服务都可以。在 Balatro 存档文件夹（macOS 是 `~/Library/Application Support/Balatro/`，Windows 是 `%AppData%\Balatro\`）里新建 `cardwisp-model.json`：
+- **Claude**：通过 Claude Code 命令行，用你自己的账号。默认列出 Opus 5.5 和 Fable 5.1。
+- **任意 OpenAI 兼容接口**：OpenAI、DeepSeek、阶跃星辰、OpenRouter，以及 Ollama、LM Studio 等本地模型服务。在牌灵设置文件夹（macOS 是 `~/Library/Application Support/Cardwisp/`，Windows 是 `%AppData%\Cardwisp\`）里新建 `models.json`：
+
+  ```json
+  {
+    "models": [
+      {
+        "name": "我的模型",
+        "model": "your-model-name",
+        "url": "https://api.example.com/v1/chat/completions",
+        "api_key_env": "MY_MODEL_API_KEY"
+      }
+    ]
+  }
+  ```
+
+  重启桥接程序，它会打印「额外模型：…」，设置菜单里就会在 Opus、Fable 旁边多出这个模型。没装 Claude Code 时，默认使用文件里的第一个模型。
+
+  - `name` 是设置菜单里显示的名字，尽量短。
+  - `url` 必须是 `https://`，或者指向 `localhost` / `127.0.0.1` 的 `http://`。用 Ollama 时填 `http://127.0.0.1:11434/v1/chat/completions`，不用写密钥。
+  - 密钥：`api_key_env` 填保存密钥的环境变量名（更安全）；也可以写 `"api_key": "..."`，以明文保存在这个文件里。
+  - 可选 `"efforts": ["low", "medium", "high"]`：加上强度档位，以 `reasoning_effort` 参数发送。模型支持这个参数才加。不写时只有「默认」一档。
+  - 可选 `"timeout_seconds"`：10 到 300，默认 120。最多 4 个模型。
+  - 如果之前用过下面的直连方式，请删掉 Balatro 存档文件夹里的 `cardwisp-model.json`，否则游戏会继续绕过桥接程序。
+
+**2. 游戏直连（基础建议，不经过桥接程序）。** OpenAI、DeepSeek、OpenRouter，以及 Ollama、LM Studio 等本地模型服务都可以。在 Balatro 存档文件夹（macOS 是 `~/Library/Application Support/Balatro/`，Windows 是 `%AppData%\Balatro\`）里新建 `cardwisp-model.json`：
 
 ```json
 {
@@ -296,7 +347,7 @@ Released under the [MIT License](LICENSE). The license covers Cardwisp's own cod
 
 - `url` 必须是 `https://`，或者指向 `localhost` / `127.0.0.1` 的 `http://`。用 Ollama 时填 `http://127.0.0.1:11434/v1/chat/completions`，不用写 `api_key`。
 - `timeout_seconds` 可填 10 到 300，默认 45。
-- 这个文件存在时，游戏直接连这个服务，不经过桥接程序。你能得到基于可见局面的建议，但**没有核对数据、已验证得分、设置菜单和独立窗口**。
+- 这个文件存在时，游戏直接连这个服务，不经过桥接程序。你能得到基于可见局面的建议，但**没有核对数据、已验证得分、设置菜单和独立窗口**。想保留这些功能，就把同一个模型写进桥接程序的 `models.json`（方式 1）。
 - 密钥以明文保存在你电脑上的这个文件里。请使用设了消费上限的密钥，也不要把文件发给别人。
 - 删除这个文件即可回到桥接程序。
 
@@ -307,7 +358,8 @@ Released under the [MIT License](LICENSE). The license covers Cardwisp's own cod
 - 游戏每秒把可见局面同步给**你自己电脑上**的桥接程序（`127.0.0.1:8765`）。**你不提问，就不会有任何内容发给模型。**
 - 每次提问会把可见局面、核对过的数据、你的问题和最多八条近期对话发给你选的模型。除此之外不收集任何数据。
 - 隐藏信息不会被读取：背面朝下的牌、没打开的卡包和抽牌顺序都看不到。
-- 推荐配置下，牌灵不保存也不索要 API 密钥，Claude Code 命令行使用你自己的登录。
+- 使用 Claude Code 时，牌灵不保存也不索要 API 密钥，Claude Code 命令行使用你自己的登录。
+- 写进 `models.json` 的密钥只保存在你的电脑上，只会发给该模型的 `url`。
 
 ### 已知限制
 
@@ -322,7 +374,7 @@ Released under the [MIT License](LICENSE). The license covers Cardwisp's own cod
 不会。它只读取可见局面、写出建议，每一步都由你自己操作。
 
 **能用哪些 AI 模型？**
-通过 Claude Code 使用 Claude（Opus 5.5 或 Fable 5.1）功能最完整。任何 OpenAI 兼容接口（包括本地模型）都可以直连，给出基础建议。见[接入其他 AI 模型](#接入其他-ai-模型)。
+通过 Claude Code 使用 Claude（Opus 5.5 或 Fable 5.1）功能最完整。任何 OpenAI 兼容接口（包括本地模型）都可以接进桥接程序，功能相同；也可以直连，只给基础建议。见[接入其他 AI 模型](#接入其他-ai-模型)。
 
 **建议靠谱吗？**
 照牌灵的建议整局打下来，白色赌注 10 局通关 7 局，见[实测表现](#实测表现)。它仍然会出错，请当作参考意见。

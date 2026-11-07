@@ -6,6 +6,6 @@
   "prefix": "bai",
   "main_file": "main.lua",
   "priority": 100,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "dependencies": ["Steamodded (>=1.0.0~BETA-0301a)"]
 }

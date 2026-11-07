@@ -29,10 +29,10 @@ return {
  error_settings_unavailable='Could not save settings. Check local config folder permissions.',
  error_companion_unavailable='Could not open the standalone Cardwisp window. Check the local Swift toolchain.',
  error_unsupported='This model service does not support that setting.',
- setting_model='Model',setting_effort='Effort',setting_goal='Goal',setting_location='Location',
+ setting_model='Model',setting_effort='Effort',setting_goal='Goal',
  goal_clear='Clear Ante 8',goal_endless='Endless score',goal_unavailable=' (soon)',
- effort_low='Low',effort_medium='Med',effort_high='High',effort_xhigh='XH',effort_max='Max',effort_ultra='Ult',
- location_inside='In game',location_outside='↗ Outside',
+ effort_low='Low',effort_medium='Med',effort_high='High',effort_xhigh='XH',effort_max='Max',effort_default='Default',effort_ultra='Ult',
+ tip_settings='Settings',tip_outside='Move to a separate window',tip_collapse='Collapse panel',
  placeholder='Ask a question…',
  resize='Resize',empty_shop='No shop items available',
 }

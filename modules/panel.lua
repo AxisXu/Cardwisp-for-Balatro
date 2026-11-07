@@ -30,8 +30,10 @@ return function(core, tr, model)
  end
  function P:settings_regions()
   local r,_,_,close=self:regions();local s=r.scale
-  local gear={x=close.x-48*s,y=close.y,w=40*s,h=close.h}
-  local card={x=r.x+18*s,y=r.y+132*s,w=r.w-36*s,h=315*s}
+  -- 标题栏从左到右：设置、移到游戏外、收起
+  local popout={x=close.x-48*s,y=close.y,w=40*s,h=close.h}
+  local gear={x=popout.x-48*s,y=close.y,w=40*s,h=close.h}
+  local card={x=r.x+18*s,y=r.y+132*s,w=r.w-36*s,h=245*s}
   -- 模型、强度档位、目标是否可选都由桥接的 capabilities 决定；这里的默认值只在桥接未应答时用。
   local models=self.capabilities or P.default_models
   local selected=self.remote_settings and self.remote_settings.model or models[1].id
@@ -47,9 +49,17 @@ return function(core, tr, model)
   for i,goal in ipairs(self.goal_options or P.default_goals)do
    goals[i]={x=card.x+12*s+(i-1)*(modew+gap),y=card.y+189*s,w=modew,h=40*s,id=goal.id,enabled=goal.enabled~=false}
   end
-  return {gear=gear,card=card,models=model_rects,efforts=effort_rects,goals=goals,
-   inside={x=card.x+12*s,y=card.y+259*s,w=modew,h=40*s},
-   outside={x=card.x+12*s+modew+gap,y=card.y+259*s,w=modew,h=40*s}}
+  return {gear=gear,popout=popout,card=card,models=model_rects,efforts=effort_rects,goals=goals}
+ end
+ -- 标题栏图标没有文字，鼠标悬停时返回提示文字；不在图标上返回 nil。
+ function P:header_tooltip(x,y)
+  if not self:visible() or not self.open then return nil end
+  local _,_,_,close=self:regions();local ui=self:settings_regions()
+  if inside(x,y,close) then return self:t('tip_collapse') end
+  if not self:bridge_active() then return nil end
+  if inside(x,y,ui.popout) then return self:t('tip_outside') end
+  if inside(x,y,ui.gear) then return self:t('tip_settings') end
+  return nil
  end
  function P:focus(value)
   if self.focused==value then return end
@@ -261,6 +271,7 @@ return function(core, tr, model)
   if self.details_open and inside(x,y,details) and not self.settings_open then return true end
   if inside(x,y,close) then self:toggle()
   elseif inside(x,y,settings.gear) and self:bridge_active() then self.settings_open=not self.settings_open;self:focus(false)
+  elseif inside(x,y,settings.popout) and self:bridge_active() then self.settings_open=false;self:show_outside()
   elseif self.settings_open then
    local selected=self.remote_settings and self.remote_settings.effort or 'high'
    local handled=false
@@ -278,8 +289,6 @@ return function(core, tr, model)
    if not handled then for _,item in ipairs(settings.goals)do
     if inside(x,y,item) then if item.enabled then self:change_settings({play_goal=item.id}) end;handled=true;break end
    end end
-   if not handled and inside(x,y,settings.inside) then self:show_inside();handled=true end
-   if not handled and inside(x,y,settings.outside) then self:show_outside();handled=true end
    if not handled then self.settings_open=false end
   elseif x<r.x+10*r.scale then self.resizing={x=x,width=r.w/r.scale,scale=r.scale};self:focus(false)
   elseif inside(x,y,send) then self:submit()
@@ -470,6 +479,11 @@ return function(core, tr, model)
    elseif kind=='settings' then
     lg.line(cx-12*s,cy-8*s,cx+12*s,cy-8*s);lg.line(cx-12*s,cy,cx+12*s,cy);lg.line(cx-12*s,cy+8*s,cx+12*s,cy+8*s)
     lg.line(cx-4*s,cy-12*s,cx-4*s,cy-4*s);lg.line(cx+5*s,cy-4*s,cx+5*s,cy+4*s);lg.line(cx-2*s,cy+4*s,cx-2*s,cy+12*s)
+   elseif kind=='popout' then
+    -- 窗口外框缺右上角，一支箭头从中间指向右上角外：「移到独立窗口」
+    lg.setLineWidth(3*s)
+    lg.line(cx-1*s,cy-11*s,cx-12*s,cy-11*s,cx-12*s,cy+11*s,cx+10*s,cy+11*s,cx+10*s,cy)
+    lg.line(cx-2*s,cy+2*s,cx+12*s,cy-12*s);lg.line(cx+3*s,cy-12*s,cx+12*s,cy-12*s,cx+12*s,cy-3*s)
    else lg.line(cx,cy+12*s,cx,cy-12*s);lg.line(cx-10*s,cy-2*s,cx,cy-12*s,cx+10*s,cy-2*s) end
   end
   if not self.open then
@@ -480,8 +494,8 @@ return function(core, tr, model)
   box({x=r.x+5*s,y=r.y+7*s,w=r.w,h=r.h},{0,0,0,0.4});box(r,colours.gold)
   box({x=r.x+3*s,y=r.y+3*s,w=r.w-6*s,h=r.h-6*s},colours.bg)
   local settings=self:settings_regions()
-  label(self:t('title'),r.x+18*s,r.y+16*s,r.w-165*s,title,colours.gold);icon(close,'collapse')
-  if self:bridge_active() then icon(settings.gear,'settings') end
+  label(self:t('title'),r.x+18*s,r.y+16*s,r.w-213*s,title,colours.gold);icon(close,'collapse')
+  if self:bridge_active() then icon(settings.gear,'settings');icon(settings.popout,'popout') end
   local status=(self.pending or self.remote_pending) and self:t('thinking') or self.settings_error and self:t('error_'..self.settings_error) or self:bridge_active() and self.bridge_connected==false and self:t('bridge_offline') or self.model_name and self:t('configured',{model=self.model_name}) or self:t(self.config_error=='bad_config' and 'invalid_config' or 'disconnected')
   label(status,r.x+18*s,r.y+52*s,r.w-36*s,small,colours.muted)
   self.snapshot=self:read_snapshot();local snap=self.snapshot
@@ -570,9 +584,15 @@ return function(core, tr, model)
    label(self:t('setting_goal'),ui.card.x+12*s,ui.card.y+163*s,ui.card.w-24*s,small,colours.gold)
    for _,item in ipairs(ui.goals)do option(item,self:t('goal_'..item.id)..(item.enabled and '' or self:t('goal_unavailable')),
     (self.remote_settings and self.remote_settings.play_goal or 'clear')==item.id,not item.enabled)end
-   label(self:t('setting_location'),ui.card.x+12*s,ui.card.y+233*s,ui.card.w-24*s,small,colours.gold)
-   option(ui.inside,self:t('location_inside'),self.mode~='outside')
-   option(ui.outside,self:t('location_outside'),self.mode=='outside')
+  end
+  if not self.settings_open then
+   local mx,my=love.mouse.getPosition();local tip=self:header_tooltip(mx,my)
+   if tip then
+    local tw=small:getWidth(tip)+20*s;local th=small:getHeight()+12*s
+    local tx=math.max(4*s,close.x+close.w-tw);local ty=close.y+close.h+8*s
+    box({x=tx-1*s,y=ty-1*s,w=tw+2*s,h=th+2*s},colours.gold);box({x=tx,y=ty,w=tw,h=th},colours.bg)
+    label(tip,tx,ty+6*s,tw,small,colours.text,'center')
+   end
   end
   lg.pop()
  end
