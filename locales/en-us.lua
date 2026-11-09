@@ -33,6 +33,7 @@ return {
  goal_clear='Clear Ante 8',goal_endless='Endless score',goal_unavailable=' (soon)',
  effort_low='Low',effort_medium='Med',effort_high='High',effort_xhigh='XH',effort_max='Max',effort_default='Default',effort_ultra='Ult',
  tip_settings='Settings',tip_outside='Move to a separate window',tip_collapse='Collapse panel',
+ tip_settings_bridge='Settings need the bridge. See README',tip_outside_bridge='Separate window needs the bridge. See README',
  placeholder='Ask a question…',
  resize='Resize',empty_shop='No shop items available',
 }

@@ -100,7 +100,7 @@ To uninstall, delete `Mods/balatro-assistant/`.
 ### Usage
 
 - Open or close the panel with the **Cardwisp** button or **F8**. Press Enter to send and Esc to leave the input box. Chinese and other IME input is supported; finish composing before pressing Enter.
-- The icons at the top right of the panel are, from left to right: **settings** (model and thinking effort), **move to a separate window** (the companion window), and **collapse**. Hover over an icon to see what it does. Settings take effect from the next question.
+- The icons at the top right of the panel are, from left to right: **settings** (model and thinking effort), **move to a separate window** (the companion window), and **collapse**. Without the bridge, settings and the separate window are greyed out. Hover over an icon to see what it does. Settings take effect from the next question.
 - If the game state changes while the model is answering, the answer is discarded and you are asked to try again, so you never get advice for a state that no longer exists.
 - Chat history lives in the bridge's memory and is cleared when a new run starts or the bridge stops.
 
@@ -135,7 +135,7 @@ Cardwisp can reach a model in two ways.
   - Optional: `"timeout_seconds"` from 10 to 300 (default 120). At most 4 models.
   - If you used the direct connection below before, delete `cardwisp-model.json` from the Balatro save folder. Otherwise the game keeps bypassing the bridge.
 
-**2. Direct connection from the game (basic advice, no bridge).** This works with OpenAI, DeepSeek, OpenRouter, or a local server such as Ollama or LM Studio. Create `cardwisp-model.json` in the Balatro save folder (`~/Library/Application Support/Balatro/` on macOS, `%AppData%\Balatro\` on Windows):
+**2. Direct connection from the game (basic advice, no bridge).** Use this only if you can't run the bridge. Option 1 gives you every feature with the same models. In this mode the settings and separate-window icons stay greyed out. This works with OpenAI, DeepSeek, OpenRouter, or a local server such as Ollama or LM Studio. Create `cardwisp-model.json` in the Balatro save folder (`~/Library/Application Support/Balatro/` on macOS, `%AppData%\Balatro\` on Windows):
 
 ```json
 {
@@ -299,7 +299,7 @@ Released under the [MIT License](LICENSE). The license covers Cardwisp's own cod
 ### 使用
 
 - 用「牌灵」按钮或 **F8** 打开、收起面板。Enter 发送，Esc 离开输入框。支持中文等输入法，选完词再按 Enter。
-- 面板右上角的图标从左到右是：**设置**（模型与思考强度）、**移到游戏外的独立窗口**、**收起**。鼠标移到图标上会显示用途。设置从下一次提问起生效。
+- 面板右上角的图标从左到右是：**设置**（模型与思考强度）、**移到游戏外的独立窗口**、**收起**。鼠标移到图标上会显示用途。没有桥接程序时，设置和独立窗口会置灰。设置从下一次提问起生效。
 - 模型回答期间局面一旦变化，旧回答会被丢弃并提示重新提问，不会拿过时的局面给你建议。
 - 聊天记录只保存在桥接程序的内存里，开新局或关闭桥接程序后清空。
 
@@ -334,7 +334,7 @@ Released under the [MIT License](LICENSE). The license covers Cardwisp's own cod
   - 可选 `"timeout_seconds"`：10 到 300，默认 120。最多 4 个模型。
   - 如果之前用过下面的直连方式，请删掉 Balatro 存档文件夹里的 `cardwisp-model.json`，否则游戏会继续绕过桥接程序。
 
-**2. 游戏直连（基础建议，不经过桥接程序）。** OpenAI、DeepSeek、OpenRouter，以及 Ollama、LM Studio 等本地模型服务都可以。在 Balatro 存档文件夹（macOS 是 `~/Library/Application Support/Balatro/`，Windows 是 `%AppData%\Balatro\`）里新建 `cardwisp-model.json`：
+**2. 游戏直连（基础建议，不经过桥接程序）。** 只在无法运行桥接程序时使用；方式 1 能用同样的模型并保留全部功能。这种方式下，设置和独立窗口两个图标会保持置灰。OpenAI、DeepSeek、OpenRouter，以及 Ollama、LM Studio 等本地模型服务都可以。在 Balatro 存档文件夹（macOS 是 `~/Library/Application Support/Balatro/`，Windows 是 `%AppData%\Balatro\`）里新建 `cardwisp-model.json`：
 
 ```json
 {

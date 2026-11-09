@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 root = Path(__file__).resolve().parents[1]
-for suite in ('core_test.lua', 'model_test.lua', 'model_panel_test.lua', 'settings_panel_test.lua', 'scene_sync_test.lua', 'panel_test.lua', 'input_ownership_test.lua', 'draw_test.lua'):
+for suite in ('core_test.lua', 'model_test.lua', 'model_panel_test.lua', 'settings_panel_test.lua', 'direct_mode_panel_test.lua', 'scene_sync_test.lua', 'panel_test.lua', 'input_ownership_test.lua', 'draw_test.lua'):
     subprocess.run([sys.executable, str(root / 'tests/run.py'), 'tests/' + suite], check=True)
 subprocess.run([sys.executable, str(root / 'tests/install_test.py')], check=True)
 subprocess.run([sys.executable, str(root / 'tests/cli_bridge_test.py')], check=True)

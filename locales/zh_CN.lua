@@ -33,6 +33,7 @@ return {
  goal_clear='通关',goal_endless='无尽冲分',goal_unavailable='（未开放）',
  effort_low='低',effort_medium='中',effort_high='高',effort_xhigh='极高',effort_max='最大',effort_default='默认',effort_ultra='超高',
  tip_settings='设置',tip_outside='移到游戏外的独立窗口',tip_collapse='收起面板',
+ tip_settings_bridge='设置需要桥接程序，详见 README',tip_outside_bridge='独立窗口需要桥接程序，详见 README',
  placeholder='输入问题…',
  resize='拖动调宽',empty_shop='当前没有可读取的商品',
 }

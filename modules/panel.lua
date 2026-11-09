@@ -56,9 +56,10 @@ return function(core, tr, model)
   if not self:visible() or not self.open then return nil end
   local _,_,_,close=self:regions();local ui=self:settings_regions()
   if inside(x,y,close) then return self:t('tip_collapse') end
-  if not self:bridge_active() then return nil end
-  if inside(x,y,ui.popout) then return self:t('tip_outside') end
-  if inside(x,y,ui.gear) then return self:t('tip_settings') end
+  -- 直连模式下这两个功能不可用，提示要说清原因，而不是让图标凭空消失。
+  local bridge=self:bridge_active()
+  if inside(x,y,ui.popout) then return self:t(bridge and 'tip_outside' or 'tip_outside_bridge') end
+  if inside(x,y,ui.gear) then return self:t(bridge and 'tip_settings' or 'tip_settings_bridge') end
   return nil
  end
  function P:focus(value)
@@ -272,6 +273,7 @@ return function(core, tr, model)
   if inside(x,y,close) then self:toggle()
   elseif inside(x,y,settings.gear) and self:bridge_active() then self.settings_open=not self.settings_open;self:focus(false)
   elseif inside(x,y,settings.popout) and self:bridge_active() then self.settings_open=false;self:show_outside()
+  elseif inside(x,y,settings.gear) or inside(x,y,settings.popout) then return true -- 置灰图标：只吃掉点击，原因由悬停提示说明
   elseif self.settings_open then
    local selected=self.remote_settings and self.remote_settings.effort or 'high'
    local handled=false
@@ -471,8 +473,8 @@ return function(core, tr, model)
   local function box(rect,c)lg.setColor(c);lg.rectangle('fill',rect.x,rect.y,rect.w,rect.h,5*s,5*s)end
   local function label(text,x,y,width,f,c,align)lg.setFont(f or font);lg.setColor(c or colours.text);lg.printf(text,x,y,width,align or 'left')end
   local function button(rect,text,c)box(rect,c or colours.well);label(text,rect.x+5*s,rect.y+(rect.h-font:getHeight())/2,rect.w-10*s,font,colours.text,'center')end
-  local function icon(rect,kind,c)
-   box(rect,c or colours.well);lg.setColor(colours.text)
+  local function icon(rect,kind,c,disabled)
+   box(rect,c or disabled and {0.08,0.12,0.13,1} or colours.well);lg.setColor(disabled and {0.36,0.42,0.41,1} or colours.text)
    local cy=rect.y+rect.h/2;local cx=rect.x+rect.w/2
    lg.setLineWidth(4*s)
    if kind=='collapse' then lg.line(cx-13*s,cy,cx+13*s,cy)
@@ -495,7 +497,8 @@ return function(core, tr, model)
   box({x=r.x+3*s,y=r.y+3*s,w=r.w-6*s,h=r.h-6*s},colours.bg)
   local settings=self:settings_regions()
   label(self:t('title'),r.x+18*s,r.y+16*s,r.w-213*s,title,colours.gold);icon(close,'collapse')
-  if self:bridge_active() then icon(settings.gear,'settings');icon(settings.popout,'popout') end
+  local no_bridge=not self:bridge_active()
+  icon(settings.gear,'settings',nil,no_bridge);icon(settings.popout,'popout',nil,no_bridge)
   local status=(self.pending or self.remote_pending) and self:t('thinking') or self.settings_error and self:t('error_'..self.settings_error) or self:bridge_active() and self.bridge_connected==false and self:t('bridge_offline') or self.model_name and self:t('configured',{model=self.model_name}) or self:t(self.config_error=='bad_config' and 'invalid_config' or 'disconnected')
   label(status,r.x+18*s,r.y+52*s,r.w-36*s,small,colours.muted)
   self.snapshot=self:read_snapshot();local snap=self.snapshot
